@@ -1,0 +1,183 @@
+<div class="discord-config" id="discord-config-root" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 16px;">
+    <h3 style="color: #5865F2; margin: 0 0 16px 0;">Discord Settings</h3>
+
+    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Bot Account (Primary)</div>
+        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Bot Token</label>
+        <input type="password" data-dc="bot-token" placeholder="Discord bot token" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px; box-sizing: border-box;">
+        <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 2px;">From discord.com/developers. Required for sending messages.</div>
+    </div>
+
+    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">User Account (Read-Only)</div>
+        <div style="background: #fff3e0; border: 1px solid #ffcc80; border-radius: 4px; padding: 8px; font-size: 11px; color: #e65100; margin-bottom: 8px;">
+            User tokens are gated to read-only operations. May violate Discord ToS.
+        </div>
+        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">User Token (Optional)</label>
+        <input type="password" data-dc="user-token" placeholder="User token for read-only access" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px; box-sizing: border-box;">
+    </div>
+
+    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Servers</div>
+        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Allowed Server IDs (one per line)</label>
+        <textarea data-dc="servers-list" rows="3" placeholder="Leave empty for all servers" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px; box-sizing: border-box; resize: vertical;"></textarea>
+    </div>
+
+    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Memory</div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; cursor: pointer;">
+            <input type="checkbox" data-dc="auto-summaries" checked> Auto-save summaries to memory
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; cursor: pointer;">
+            <input type="checkbox" data-dc="auto-insights" checked> Auto-save insights to memory
+        </label>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+            <input type="checkbox" data-dc="auto-sync"> Auto-sync personas on read
+        </label>
+    </div>
+
+    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Alert Polling</div>
+        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Polling Interval (minutes)</label>
+        <input type="number" data-dc="poll-interval" value="15" min="1" max="1440" style="width: 80px; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px;">
+        <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 2px;">How often to check watched channels for new alerts (1-1440 minutes).</div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-top: 8px; cursor: pointer;">
+            <input type="checkbox" data-dc="auto-images" checked> Auto-analyze images in alerts
+        </label>
+    </div>
+
+    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
+        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Chat Bridge</div>
+        <div style="font-size: 11px; color: var(--text-secondary, #888); margin-bottom: 8px;">
+            Route Discord messages through Agent Zero's LLM. Requires a bot token. Channels are managed via the <code>discord_chat</code> tool.
+        </div>
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+            <input type="checkbox" data-dc="bridge-autostart"> Auto-start chat bridge on agent startup
+        </label>
+        <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 4px;">
+            When enabled, the bot connects automatically when Agent Zero starts (if channels are configured).
+            Add channels by telling the agent: "Add Discord channel &lt;ID&gt; to the chat bridge"
+        </div>
+    </div>
+
+    <button data-dc="save-btn" style="background: #5865F2; color: #fff; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">Save Discord Settings</button>
+    <span data-dc="save-status" style="margin-left: 10px; font-size: 12px;"></span>
+    <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 8px;">Use this button (not the outer framework Save) to save Discord settings. Tokens are stored securely with masking.</div>
+</div>
+
+<script>
+(function() {
+    // Scope all lookups to our container — avoids ID conflicts with A0 framework
+    const root = document.querySelector('#discord-config-root') ||
+                 document.querySelector('.discord-config') ||
+                 document.currentScript?.parentElement;
+
+    if (!root) { console.error('[Discord Config] Cannot find config root element'); return; }
+
+    function el(key) {
+        return root.querySelector('[data-dc="' + key + '"]');
+    }
+
+    async function loadConfig() {
+        try {
+            const resp = await fetch('/api/plugins/discord/discord_config_api', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'get'})
+            });
+            const c = await resp.json();
+            console.log('[Discord Config] Loaded:', JSON.stringify(c));
+
+            if (c.bot?.token) el('bot-token').value = c.bot.token;
+            if (c.user?.token) el('user-token').value = c.user.token;
+            if (c.servers?.length) el('servers-list').value = c.servers.join('\n');
+            if (c.memory) {
+                el('auto-summaries').checked = c.memory.auto_save_summaries !== false;
+                el('auto-insights').checked = c.memory.auto_save_insights !== false;
+            }
+            if (c.persona) el('auto-sync').checked = c.persona.auto_sync_on_read === true;
+            if (c.polling) {
+                el('poll-interval').value = c.polling.interval_minutes || 15;
+                el('auto-images').checked = c.polling.auto_analyze_images !== false;
+            }
+            if (c.chat_bridge) {
+                el('bridge-autostart').checked = c.chat_bridge.auto_start === true;
+            }
+        } catch (e) {
+            console.error('[Discord Config] Load error:', e);
+        }
+    }
+
+    async function saveConfig() {
+        const status = el('save-status');
+        const botToken = el('bot-token')?.value || '';
+        const userToken = el('user-token')?.value || '';
+
+        const config = {
+            action: 'set',
+            bot: { token: botToken },
+            user: { token: userToken, read_only: true },
+            servers: (el('servers-list')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
+            memory: {
+                auto_save_summaries: el('auto-summaries')?.checked ?? true,
+                auto_save_insights: el('auto-insights')?.checked ?? true,
+                export_format: "markdown"
+            },
+            persona: {
+                auto_sync_on_read: el('auto-sync')?.checked ?? false,
+                track_activity: true
+            },
+            defaults: { message_limit: 100, insight_limit: 200, member_sync_limit: 1000 },
+            polling: {
+                interval_minutes: parseInt(el('poll-interval')?.value) || 15,
+                auto_analyze_images: el('auto-images')?.checked ?? true
+            },
+            chat_bridge: {
+                auto_start: el('bridge-autostart')?.checked ?? false
+            }
+        };
+
+        // Debug: log what we're sending
+        const debugInfo = {
+            bot_token_len: botToken.length,
+            user_token_len: userToken.length,
+            has_bot: botToken.length > 0,
+            has_user: userToken.length > 0
+        };
+        console.log('[Discord Config] Saving:', JSON.stringify(debugInfo));
+
+        try {
+            const resp = await fetch('/api/plugins/discord/discord_config_api', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(config)
+            });
+            const result = await resp.json();
+            console.log('[Discord Config] Save result:', JSON.stringify(result));
+
+            if (result.ok) {
+                status.style.color = '#2e7d32';
+                const parts = [];
+                if (debugInfo.has_bot) parts.push('bot token');
+                if (debugInfo.has_user) parts.push('user token');
+                status.textContent = 'Saved! (' + (parts.join(' + ') || 'settings') + ')';
+            } else {
+                status.style.color = '#c62828';
+                status.textContent = 'Error: ' + (result.error || 'Unknown');
+            }
+            setTimeout(() => { status.textContent = ''; }, 5000);
+        } catch (e) {
+            status.style.color = '#c62828';
+            status.textContent = 'Network error: ' + e.message;
+            console.error('[Discord Config] Save error:', e);
+        }
+    }
+
+    // Bind save button
+    const saveBtn = el('save-btn');
+    if (saveBtn) saveBtn.addEventListener('click', saveConfig);
+
+    // Load config on init
+    loadConfig();
+})();
+</script>

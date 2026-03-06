@@ -1,0 +1,37 @@
+# Discord Plugin Configuration
+# Tokens can also be set via environment variables:
+#   DISCORD_BOT_TOKEN, DISCORD_USER_TOKEN
+
+bot:
+  token: ""
+
+user:
+  token: ""
+  read_only: true
+
+# Allowed server/guild IDs (empty = allow all)
+servers: []
+
+defaults:
+  message_limit: 100
+  insight_limit: 200
+  member_sync_limit: 1000
+
+memory:
+  auto_save_summaries: true
+  auto_save_insights: true
+  export_format: "markdown"
+
+persona:
+  auto_sync_on_read: false
+  track_activity: true
+
+# Alert polling
+polling:
+  interval_minutes: 15
+  auto_analyze_images: true
+
+# Chat bridge — Discord as a chat frontend to Agent Zero
+chat_bridge:
+  auto_start: false
+  # Channels are managed via the discord_chat tool, not config

@@ -1,0 +1,8 @@
+title: Discord Integration
+description: Read, summarize, and interact with Discord servers. Channel/thread summarization, insight extraction, persona tracking, bot messaging, and real-time chat bridge.
+version: 1.0.0
+settings_sections:
+  - external
+per_project_config: true
+per_agent_config: true
+always_enabled: false
