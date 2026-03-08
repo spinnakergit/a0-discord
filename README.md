@@ -159,7 +159,8 @@ usr/plugins/discord/
 ├── install.sh               # Automated installer
 ├── helpers/
 │   ├── discord_client.py    # REST API wrapper with rate limiting
-│   ├── discord_bot.py       # Chat bridge bot (discord.py Gateway)
+│   ├── discord_bot.py       # Chat bridge bot (direct LLM, no tools)
+│   ├── sanitize.py          # Security: input validation, injection defense
 │   ├── persona_registry.py  # Persistent user tracking
 │   └── poll_state.py        # Polling state tracker
 ├── tools/                   # 7 tools (auto-discovered by framework)
@@ -171,6 +172,21 @@ usr/plugins/discord/
 ├── data/                    # Runtime state (auto-created)
 └── docs/                    # Documentation
 ```
+
+## Security
+
+This plugin has been security-hardened with the following measures:
+
+- **Chat bridge privilege isolation** -- The chat bridge uses direct LLM calls (`call_utility_model`) instead of the full agent loop. Discord users have **zero access** to tools, code execution, file operations, or system resources. This is enforced architecturally, not by prompt instructions.
+- **Prompt injection defense** -- Input sanitization with Unicode homoglyph normalization (NFKC), zero-width character stripping, and pattern-based injection detection.
+- **Snowflake ID validation** -- All Discord IDs are validated as 17-20 digit numbers before use in API calls.
+- **SSRF protection** -- Image downloads restricted to Discord CDN hosts only.
+- **Atomic file writes** -- State files written atomically with restrictive permissions (`0o600`).
+- **Per-user rate limiting** -- Sliding window rate limiter (10 messages per 60 seconds) on the chat bridge.
+- **Server allowlist enforcement** -- Configured server allowlists are checked consistently across all tools.
+- **Sanitized error messages** -- Internal details (file paths, stack traces) are never exposed to users.
+
+> **Update notice (March 2026):** If you installed this plugin prior to the security hardening commit, please reinstall to pick up these fixes. The most critical change is the chat bridge architectural isolation — earlier versions routed Discord messages through the full agent loop, which could allow privilege escalation.
 
 ## Troubleshooting
 
