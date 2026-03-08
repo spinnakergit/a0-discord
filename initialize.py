@@ -31,9 +31,9 @@ def main():
     python = _find_python()
     # Map of import name -> pip package name (when they differ)
     deps = {
-        "aiohttp": "aiohttp",
-        "yaml": "pyyaml",
-        "discord": "discord.py",
+        "aiohttp": "aiohttp>=3.9,<4",
+        "yaml": "pyyaml>=6.0,<7",
+        "discord": "discord.py>=2.3,<3",
     }
     failed = []
     for import_name, pip_name in deps.items():

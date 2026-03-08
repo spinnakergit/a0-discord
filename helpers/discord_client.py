@@ -255,13 +255,23 @@ class DiscordAPIError(Exception):
 
 
 def format_messages(messages: list, include_ids: bool = False) -> str:
-    """Format Discord messages into readable text for LLM consumption."""
+    """Format Discord messages into readable text for LLM consumption.
+
+    All external content (usernames, message text, embeds, filenames) is
+    sanitized to neutralise prompt injection attempts.
+    """
+    from plugins.discord.helpers.sanitize import (
+        sanitize_content, sanitize_username, sanitize_embed, sanitize_filename,
+    )
+
     lines = []
     for msg in reversed(messages):  # Chronological order
         author = msg.get("author", {})
-        username = author.get("global_name") or author.get("username", "Unknown")
+        username = sanitize_username(
+            author.get("global_name") or author.get("username", "Unknown")
+        )
         timestamp = msg.get("timestamp", "")[:19].replace("T", " ")
-        content = msg.get("content", "")
+        content = sanitize_content(msg.get("content", ""))
 
         embeds = msg.get("embeds", [])
         embed_text = ""
@@ -269,21 +279,23 @@ def format_messages(messages: list, include_ids: bool = False) -> str:
             parts = []
             for embed in embeds:
                 if embed.get("title"):
-                    parts.append(f"[Embed: {embed['title']}]")
+                    parts.append(f"[Embed: {sanitize_embed(embed['title'], max_length=256)}]")
                 if embed.get("description"):
-                    parts.append(embed["description"])
+                    parts.append(sanitize_embed(embed["description"]))
             embed_text = " " + " | ".join(parts) if parts else ""
 
         attachments = msg.get("attachments", [])
         attach_text = ""
         if attachments:
-            names = [a.get("filename", "file") for a in attachments]
+            names = [sanitize_filename(a.get("filename", "file")) for a in attachments]
             attach_text = f" [Attachments: {', '.join(names)}]"
 
         reply_text = ""
         ref = msg.get("referenced_message")
         if ref:
-            ref_author = ref.get("author", {}).get("username", "Unknown")
+            ref_author = sanitize_username(
+                ref.get("author", {}).get("username", "Unknown")
+            )
             reply_text = f" (replying to {ref_author})"
 
         prefix = f"[{msg['id']}] " if include_ids else ""

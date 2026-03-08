@@ -35,3 +35,10 @@ polling:
 chat_bridge:
   auto_start: false
   # Channels are managed via the discord_chat tool, not config
+
+# Security — prompt injection defense
+security:
+  max_message_length: 4000
+  max_bulk_input_chars: 200000
+  sanitize_content: true
+  strip_injection_patterns: true

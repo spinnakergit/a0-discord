@@ -36,4 +36,4 @@ class DiscordTest(ApiHandler):
                 "id": user.get("id"),
             }
         except Exception as e:
-            return {"ok": False, "error": str(e)}
+            return {"ok": False, "error": f"Connection failed: {type(e).__name__}"}

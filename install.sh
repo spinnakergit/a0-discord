@@ -10,7 +10,7 @@
 #   Or: docker cp discord-plugin/ <container>:/a0/usr/plugins/discord && \
 #       docker exec <container> ln -sf /a0/usr/plugins/discord /a0/plugins/discord
 
-set -e
+set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -53,8 +53,9 @@ cp -r "$SCRIPT_DIR/extensions" "$PLUGIN_DIR/"
 [ -f "$SCRIPT_DIR/README.md" ] && cp "$SCRIPT_DIR/README.md" "$PLUGIN_DIR/"
 [ -f "$SCRIPT_DIR/LICENSE" ] && cp "$SCRIPT_DIR/LICENSE" "$PLUGIN_DIR/"
 
-# Create data directory
+# Create data directory with restrictive permissions
 mkdir -p "$PLUGIN_DIR/data"
+chmod 700 "$PLUGIN_DIR/data"
 
 # Copy skills to usr/skills
 SKILLS_DIR="$A0_ROOT/usr/skills"
@@ -67,7 +68,7 @@ done
 
 # Run initialization (install Python deps)
 echo "Installing dependencies..."
-python3 "$PLUGIN_DIR/initialize.py" 2>/dev/null || python "$PLUGIN_DIR/initialize.py"
+python3 "$PLUGIN_DIR/initialize.py" || python "$PLUGIN_DIR/initialize.py"
 
 # Enable plugin
 touch "$PLUGIN_DIR/.toggle-1"

@@ -2,6 +2,7 @@
 Listens for messages in designated channels and routes them through Agent Zero's LLM."""
 
 import asyncio
+import collections
 import json
 import logging
 import time
@@ -43,10 +44,8 @@ def load_chat_state() -> dict:
 
 
 def save_chat_state(state: dict):
-    path = _get_state_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(state, f, indent=2)
+    from plugins.discord.helpers.sanitize import secure_write_json
+    secure_write_json(_get_state_path(), state)
 
 
 def add_chat_channel(channel_id: str, guild_id: str = "", label: str = ""):
@@ -81,14 +80,48 @@ def set_context_id(channel_id: str, context_id: str):
 
 
 class ChatBridgeBot(discord.Client):
-    """Discord bot that bridges messages to Agent Zero's LLM."""
+    """Discord bot that bridges messages to Agent Zero's LLM.
+
+    SECURITY: Uses direct LLM calls (call_utility_model) instead of the full
+    agent loop. This means the LLM has NO access to tools, code execution,
+    file operations, or any system resources. This is intentional — chat bridge
+    users are untrusted external Discord users.
+    """
+
+    MAX_CHAT_MESSAGE_LENGTH = 4000
+    MAX_HISTORY_MESSAGES = 20
+    # Rate limit: max messages per user within the window
+    RATE_LIMIT_MAX = 10
+    RATE_LIMIT_WINDOW = 60  # seconds
+
+    CHAT_SYSTEM_PROMPT = (
+        "You are a friendly, helpful AI assistant chatting with users on Discord.\n\n"
+        "IMPORTANT CONSTRAINTS:\n"
+        "- You are a conversational chat bot ONLY. You have NO access to tools, files, "
+        "commands, terminals, or any system resources.\n"
+        "- If users ask you to run commands, access files, list directories, execute code, "
+        "or perform any system operations, explain that you don't have those capabilities.\n"
+        "- NEVER fabricate or make up file listings, directory contents, command outputs, "
+        "or system information. You genuinely do not have access to any of these.\n"
+        "- Be helpful, friendly, and conversational within these constraints.\n"
+        "- You can help with general knowledge, answer questions, have discussions, "
+        "write text, brainstorm ideas, and more — just not anything involving system access.\n"
+        "- Each message shows the Discord username prefix. Respond naturally to the "
+        "conversation.\n"
+    )
 
     def __init__(self, bot_token: str):
+        if not bot_token or not bot_token.strip():
+            raise ValueError("Bot token must be provided to ChatBridgeBot.")
         intents = discord.Intents.default()
         intents.message_content = True
         intents.guilds = True
         super().__init__(intents=intents)
         self.bot_token = bot_token
+        # Per-user rate limiting: user_id -> deque of timestamps
+        self._rate_limits: dict[str, collections.deque] = {}
+        # Per-channel conversation history (in-memory, lost on restart)
+        self._conversations: dict[str, list[dict]] = {}
 
     async def on_ready(self):
         logger.info(f"Chat bridge connected as {self.user} (ID: {self.user.id})")
@@ -109,24 +142,53 @@ class ChatBridgeBot(discord.Client):
         if not user_text.strip():
             return
 
+        # Enforce content length limit before any processing
+        if len(user_text) > self.MAX_CHAT_MESSAGE_LENGTH:
+            await message.channel.send(
+                f"Message too long ({len(user_text)} chars). "
+                f"Max: {self.MAX_CHAT_MESSAGE_LENGTH}."
+            )
+            return
+
+        # Per-user rate limiting
+        user_key = str(message.author.id)
+        now = time.monotonic()
+        if user_key not in self._rate_limits:
+            self._rate_limits[user_key] = collections.deque()
+        timestamps = self._rate_limits[user_key]
+        # Purge old entries outside the window
+        while timestamps and now - timestamps[0] > self.RATE_LIMIT_WINDOW:
+            timestamps.popleft()
+        if len(timestamps) >= self.RATE_LIMIT_MAX:
+            await message.channel.send(
+                f"Rate limit: max {self.RATE_LIMIT_MAX} messages per {self.RATE_LIMIT_WINDOW}s. Please wait."
+            )
+            return
+        timestamps.append(now)
+
         # Show typing while processing
         async with message.channel.typing():
             try:
                 response_text = await self._get_agent_response(channel_id, user_text, message)
             except Exception as e:
-                logger.error(f"Agent error: {e}")
-                response_text = f"Error processing message: {e}"
+                logger.error(f"Agent error: {type(e).__name__}")
+                response_text = "An error occurred while processing your message."
 
         # Send response, splitting if needed
         await self._send_response(message.channel, response_text, reference=message)
 
     async def _get_agent_response(self, channel_id: str, text: str, message: discord.Message) -> str:
-        """Route the message through Agent Zero's agent loop."""
+        """Get LLM response via direct model call (no agent loop, no tools).
+
+        SECURITY: This intentionally bypasses the full agent loop. The LLM is
+        called directly via call_utility_model(), which provides NO tool access.
+        This prevents privilege escalation from untrusted Discord users.
+        """
         try:
-            from agent import AgentContext, AgentContextType, UserMessage
+            from agent import AgentContext, AgentContextType
             from initialize import initialize_agent
 
-            # Get or create a context for this channel
+            # Get or create a context (only for model access, NOT for tool execution)
             context_id = get_context_id(channel_id)
             context = None
 
@@ -134,39 +196,55 @@ class ChatBridgeBot(discord.Client):
                 context = AgentContext.get(context_id)
 
             if context is None:
-                # Create new context matching how A0's api_message.py does it
                 config = initialize_agent()
                 context = AgentContext(config=config, type=AgentContextType.USER)
                 set_context_id(channel_id, context.id)
                 logger.info(f"Created new context {context.id} for channel {channel_id}")
 
-            # Build user message with Discord metadata
-            author_name = message.author.display_name or message.author.name
-            prefixed_text = f"[Discord - {author_name}]: {text}"
+            agent = context.agent0
 
-            # Handle image attachments — save to temp files (UserMessage expects file paths)
-            attachment_paths = []
-            for att in message.attachments:
-                if att.content_type and att.content_type.startswith("image/"):
-                    try:
-                        import tempfile
-                        img_bytes = await att.read()
-                        suffix = Path(att.filename).suffix or ".png"
-                        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-                        tmp.write(img_bytes)
-                        tmp.close()
-                        attachment_paths.append(tmp.name)
-                    except Exception:
-                        pass
+            # Sanitize external content
+            from plugins.discord.helpers.sanitize import sanitize_content, sanitize_username
+            author_name = sanitize_username(
+                message.author.display_name or message.author.name
+            )
+            safe_text = sanitize_content(text)
 
-            user_msg = UserMessage(message=prefixed_text, attachments=attachment_paths)
-            task = context.communicate(user_msg)
-            result = await task.result()
+            # Maintain per-channel conversation history
+            if channel_id not in self._conversations:
+                self._conversations[channel_id] = []
+            history = self._conversations[channel_id]
+            history.append({"role": "user", "name": author_name, "content": safe_text})
 
-            return result if isinstance(result, str) else str(result)
+            # Trim to max history length
+            if len(history) > self.MAX_HISTORY_MESSAGES:
+                self._conversations[channel_id] = history[-self.MAX_HISTORY_MESSAGES:]
+                history = self._conversations[channel_id]
+
+            # Format conversation history for the model
+            formatted = []
+            for msg in history:
+                if msg["role"] == "user":
+                    formatted.append(f"{msg['name']}: {msg['content']}")
+                else:
+                    formatted.append(f"Assistant: {msg['content']}")
+            conversation_text = "\n".join(formatted)
+
+            # Direct LLM call — NO tools, NO agent loop, NO code execution
+            response = await agent.call_utility_model(
+                system=self.CHAT_SYSTEM_PROMPT,
+                message=conversation_text,
+            )
+
+            # Store response in history
+            history.append({"role": "assistant", "content": response})
+
+            return response if isinstance(response, str) else str(response)
 
         except ImportError:
             # Fallback: use HTTP API if in-process imports aren't available
+            # WARNING: HTTP fallback routes through the full agent loop and is
+            # less secure. It should only be used when A0 imports are unavailable.
             return await self._get_agent_response_http(channel_id, text)
 
     async def _get_agent_response_http(self, channel_id: str, text: str) -> str:
@@ -249,6 +327,9 @@ def _split_message(content: str, max_length: int = 2000) -> list[str]:
 async def start_chat_bridge(bot_token: str) -> ChatBridgeBot:
     """Start the chat bridge bot as a background task."""
     global _bot_instance, _bot_task
+
+    if not bot_token or not bot_token.strip():
+        raise ValueError("Cannot start chat bridge: bot token is empty or not configured.")
 
     if _bot_instance and not _bot_instance.is_closed():
         return _bot_instance

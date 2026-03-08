@@ -8,6 +8,7 @@ from plugins.discord.helpers.discord_bot import (
     remove_chat_channel,
     get_chat_channels,
 )
+from plugins.discord.helpers.sanitize import require_auth, validate_snowflake
 
 
 class DiscordChat(Tool):
@@ -15,6 +16,12 @@ class DiscordChat(Tool):
     chat with Agent Zero through Discord channels."""
 
     async def execute(self, **kwargs) -> Response:
+        config = get_discord_config(self.agent)
+        try:
+            require_auth(config)
+        except ValueError as e:
+            return Response(message=f"Auth error: {e}", break_loop=False)
+
         action = self.args.get("action", "status")
 
         if action == "start":
@@ -70,7 +77,7 @@ class DiscordChat(Tool):
                 break_loop=False,
             )
         except Exception as e:
-            return Response(message=f"Error starting chat bridge: {e}", break_loop=False)
+            return Response(message=f"Error starting chat bridge: {type(e).__name__}", break_loop=False)
 
     async def _stop(self) -> Response:
         """Stop the chat bridge bot."""
@@ -83,7 +90,7 @@ class DiscordChat(Tool):
             await stop_chat_bridge()
             return Response(message="Chat bridge stopped.", break_loop=False)
         except Exception as e:
-            return Response(message=f"Error stopping chat bridge: {e}", break_loop=False)
+            return Response(message=f"Error stopping chat bridge: {type(e).__name__}", break_loop=False)
 
     def _add_channel(self) -> Response:
         """Add a channel to the chat bridge."""
@@ -91,8 +98,10 @@ class DiscordChat(Tool):
         guild_id = self.args.get("guild_id", "")
         label = self.args.get("label", "")
 
-        if not channel_id:
-            return Response(message="Error: channel_id is required.", break_loop=False)
+        try:
+            channel_id = validate_snowflake(channel_id, "channel_id")
+        except ValueError as e:
+            return Response(message=f"Error: {e}", break_loop=False)
 
         add_chat_channel(channel_id, guild_id, label)
         msg = f"Channel {channel_id} added to chat bridge"
@@ -104,8 +113,10 @@ class DiscordChat(Tool):
     def _remove_channel(self) -> Response:
         """Remove a channel from the chat bridge."""
         channel_id = self.args.get("channel_id", "")
-        if not channel_id:
-            return Response(message="Error: channel_id is required.", break_loop=False)
+        try:
+            channel_id = validate_snowflake(channel_id, "channel_id")
+        except ValueError as e:
+            return Response(message=f"Error: {e}", break_loop=False)
 
         remove_chat_channel(channel_id)
         return Response(

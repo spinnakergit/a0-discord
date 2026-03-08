@@ -3,6 +3,7 @@ from plugins.discord.helpers.discord_client import (
     DiscordClient, DiscordAPIError, format_messages, get_discord_config,
     get_modes_to_try,
 )
+from plugins.discord.helpers.sanitize import require_auth, sanitize_channel_name
 
 
 class DiscordRead(Tool):
@@ -17,6 +18,10 @@ class DiscordRead(Tool):
         action = self.args.get("action", "messages")
 
         config = get_discord_config(self.agent)
+        try:
+            require_auth(config)
+        except ValueError as e:
+            return Response(message=f"Auth error: {e}", break_loop=False)
         allowed_servers = config.get("servers", [])
         explicit_mode = self.args.get("mode", "")
         modes = get_modes_to_try(config, explicit_mode or None)
@@ -87,14 +92,15 @@ def _format_channels(channels: list) -> str:
 
     for ch in channels:
         if ch.get("type") == 4:
-            categories[ch["id"]] = {"name": ch["name"], "channels": []}
+            categories[ch["id"]] = {"name": sanitize_channel_name(ch["name"]), "channels": []}
 
     for ch in channels:
         if ch.get("type") == 4:
             continue
         parent = ch.get("parent_id")
         ch_type = _channel_type_name(ch.get("type", 0))
-        entry = f"  - [{ch_type}] #{ch['name']} (ID: {ch['id']})"
+        safe_name = sanitize_channel_name(ch.get("name", "unknown"))
+        entry = f"  - [{ch_type}] #{safe_name} (ID: {ch['id']})"
         if parent and parent in categories:
             categories[parent]["channels"].append(entry)
         else:
@@ -115,8 +121,9 @@ def _format_threads(threads: list) -> str:
         return "No active threads found."
     lines = ["Active Threads:"]
     for t in threads:
+        safe_name = sanitize_channel_name(t.get("name", "unknown"))
         lines.append(
-            f"  - {t['name']} (ID: {t['id']}) "
+            f"  - {safe_name} (ID: {t['id']}) "
             f"- {t.get('message_count', '?')} messages, {t.get('member_count', '?')} members"
         )
     return "\n".join(lines)

@@ -31,10 +31,8 @@ def load_state() -> dict:
 
 
 def save_state(state: dict):
-    path = _get_state_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(state, f, indent=2)
+    from plugins.discord.helpers.sanitize import secure_write_json
+    secure_write_json(_get_state_path(), state)
 
 
 def get_last_message_id(channel_id: str) -> Optional[str]:

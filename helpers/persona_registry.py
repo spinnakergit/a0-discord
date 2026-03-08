@@ -33,10 +33,8 @@ def load_registry() -> dict:
 
 def save_registry(registry: dict):
     registry["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    path = _get_registry_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w") as f:
-        json.dump(registry, f, indent=2)
+    from plugins.discord.helpers.sanitize import secure_write_json
+    secure_write_json(_get_registry_path(), registry)
 
 
 def upsert_user(

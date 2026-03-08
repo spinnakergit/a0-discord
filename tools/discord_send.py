@@ -2,6 +2,7 @@ from helpers.tool import Tool, Response
 from plugins.discord.helpers.discord_client import (
     DiscordClient, DiscordAPIError, get_discord_config,
 )
+from plugins.discord.helpers.sanitize import require_auth, validate_snowflake
 
 
 class DiscordSend(Tool):
@@ -13,11 +14,17 @@ class DiscordSend(Tool):
         reply_to = self.args.get("reply_to", "")
         action = self.args.get("action", "send")
 
-        if not channel_id:
-            return Response(message="Error: channel_id is required.", break_loop=False)
+        try:
+            channel_id = validate_snowflake(channel_id, "channel_id")
+        except ValueError as e:
+            return Response(message=f"Error: {e}", break_loop=False)
 
         config = get_discord_config(self.agent)
-        if not config.get("bot", {}).get("token"):
+        try:
+            require_auth(config)
+        except ValueError as e:
+            return Response(message=f"Auth error: {e}", break_loop=False)
+        if not (config.get("bot", {}).get("token", "") or "").strip():
             return Response(
                 message="Error: Bot token not configured. Sending requires a bot account.",
                 break_loop=False,
@@ -59,7 +66,7 @@ class DiscordSend(Tool):
         except DiscordAPIError as e:
             return Response(message=f"Discord API error: {e}", break_loop=False)
         except Exception as e:
-            return Response(message=f"Error sending to Discord: {e}", break_loop=False)
+            return Response(message=f"Error sending to Discord: {type(e).__name__}", break_loop=False)
 
 
 def _split_message(content: str, max_length: int = 2000) -> list[str]:

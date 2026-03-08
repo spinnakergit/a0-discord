@@ -6,6 +6,7 @@ from plugins.discord.helpers.persona_registry import (
     upsert_user, get_user, search_users, get_guild_users,
     format_user_profile, load_registry,
 )
+from plugins.discord.helpers.sanitize import require_auth, sanitize_username
 
 
 class DiscordMembers(Tool):
@@ -17,6 +18,12 @@ class DiscordMembers(Tool):
         user_id = self.args.get("user_id", "")
         query = self.args.get("query", "")
         notes = self.args.get("notes", "")
+
+        config = get_discord_config(self.agent)
+        try:
+            require_auth(config)
+        except ValueError as e:
+            return Response(message=f"Auth error: {e}", break_loop=False)
 
         try:
             if action == "list":
@@ -67,8 +74,8 @@ class DiscordMembers(Tool):
                 lines = [f"Members of guild {guild_id} ({len(members)} shown):"]
                 for m in members:
                     user = m.get("user", {})
-                    username = user.get("username", "Unknown")
-                    display = m.get("nick") or user.get("global_name") or username
+                    username = sanitize_username(user.get("username", "Unknown"))
+                    display = sanitize_username(m.get("nick") or user.get("global_name") or username)
                     bot_tag = " [BOT]" if user.get("bot") else ""
                     lines.append(f"  - {display} (@{username}, ID: {user.get('id', '?')}){bot_tag} - {len(m.get('roles', []))} roles")
                 return Response(message="\n".join(lines), break_loop=False)
@@ -99,8 +106,8 @@ class DiscordMembers(Tool):
                 member = await client.get_guild_member(guild_id, user_id)
                 await client.close()
                 user = member.get("user", {})
-                username = user.get("username", "Unknown")
-                display = member.get("nick") or user.get("global_name") or username
+                username = sanitize_username(user.get("username", "Unknown"))
+                display = sanitize_username(member.get("nick") or user.get("global_name") or username)
                 discord_text = (
                     f"Discord Profile:\n"
                     f"  Username: @{username}\n"

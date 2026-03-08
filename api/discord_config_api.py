@@ -52,16 +52,18 @@ class DiscordConfigApi(ApiHandler):
                 else:
                     config = {}
 
-            # Mask tokens for security
+            # Mask tokens for security — show only first 2 and last 2 chars
             masked = json.loads(json.dumps(config))
             for key in ("bot", "user"):
                 if key in masked and masked[key].get("token"):
                     token = masked[key]["token"]
-                    if len(token) > 8:
-                        masked[key]["token"] = token[:4] + "..." + token[-4:]
+                    if len(token) > 6:
+                        masked[key]["token"] = token[:2] + "*" * 8 + token[-2:]
+                    else:
+                        masked[key]["token"] = "********"
             return masked
-        except Exception as e:
-            return {"error": str(e)}
+        except Exception:
+            return {"error": "Failed to read configuration."}
 
     def _set_config(self, input: dict) -> dict:
         try:
@@ -83,12 +85,13 @@ class DiscordConfigApi(ApiHandler):
 
             for key in ("bot", "user"):
                 new_token = config.get(key, {}).get("token", "")
-                if new_token and "..." in new_token:
+                if new_token and "*" * 4 in new_token:
+                    # Masked token — preserve existing
                     config.setdefault(key, {})["token"] = existing.get(key, {}).get("token", "")
 
-            with open(config_path, "w") as f:
-                json.dump(config, f, indent=2)
+            from plugins.discord.helpers.sanitize import secure_write_json
+            secure_write_json(config_path, config)
 
             return {"ok": True}
-        except Exception as e:
-            return {"error": str(e)}
+        except Exception:
+            return {"error": "Failed to save configuration."}
