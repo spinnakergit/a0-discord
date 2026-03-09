@@ -29,7 +29,7 @@ class DiscordConfigApi(ApiHandler):
 
     @classmethod
     def requires_csrf(cls) -> bool:
-        return False
+        return True
 
     async def process(self, input: dict, request: Request) -> dict | Response:
         action = input.get("action", "get")
@@ -71,6 +71,16 @@ class DiscordConfigApi(ApiHandler):
                         masked[key]["token"] = token[:2] + "*" * 8 + token[-2:]
                     else:
                         masked[key]["token"] = "********"
+
+            # Mask auth key — show only last 4 chars
+            bridge = masked.get("chat_bridge", {})
+            if bridge.get("auth_key"):
+                key = bridge["auth_key"]
+                if len(key) > 6:
+                    bridge["auth_key"] = "****" + key[-4:]
+                else:
+                    bridge["auth_key"] = "********"
+
             return masked
         except Exception:
             return {"error": "Failed to read configuration."}
@@ -99,11 +109,20 @@ class DiscordConfigApi(ApiHandler):
                     # Masked token — preserve existing
                     config.setdefault(key, {})["token"] = existing.get(key, {}).get("token", "")
 
-            # Preserve existing auth_key if not provided or empty in the new config
+            # Preserve existing auth_key if not provided, empty, or masked
             new_auth_key = config.get("chat_bridge", {}).get("auth_key", "")
             existing_auth_key = existing.get("chat_bridge", {}).get("auth_key", "")
-            if not new_auth_key and existing_auth_key:
+            if (not new_auth_key or "****" in new_auth_key) and existing_auth_key:
                 config.setdefault("chat_bridge", {})["auth_key"] = existing_auth_key
+
+            # Merge allowed_users lists instead of replacing
+            new_bridge = config.get("chat_bridge", {})
+            existing_bridge = existing.get("chat_bridge", {})
+            if "allowed_users" in new_bridge and "allowed_users" in existing_bridge:
+                merged_users = list(dict.fromkeys(
+                    existing_bridge["allowed_users"] + new_bridge["allowed_users"]
+                ))
+                new_bridge["allowed_users"] = merged_users
 
             from plugins.discord.helpers.sanitize import secure_write_json
             secure_write_json(config_path, config)

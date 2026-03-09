@@ -123,6 +123,8 @@
 
 <script>
 (function() {
+    const fetchApi = globalThis.fetchApi || fetch;
+
     // Scope all lookups to our container — avoids ID conflicts with A0 framework
     const root = document.querySelector('#discord-config-root') ||
                  document.querySelector('.discord-config') ||
@@ -136,7 +138,7 @@
 
     async function loadConfig() {
         try {
-            const resp = await fetch('/api/plugins/discord/discord_config_api', {
+            const resp = await fetchApi('/api/plugins/discord/discord_config_api', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({action: 'get'})
@@ -228,7 +230,7 @@
         console.log('[Discord Config] Saving:', JSON.stringify(debugInfo));
 
         try {
-            const resp = await fetch('/api/plugins/discord/discord_config_api', {
+            const resp = await fetchApi('/api/plugins/discord/discord_config_api', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config)
@@ -270,7 +272,7 @@
     const regenBtn = el('regen-key-btn');
     if (regenBtn) regenBtn.addEventListener('click', async function() {
         try {
-            const resp = await fetch('/api/plugins/discord/discord_config_api', {
+            const resp = await fetchApi('/api/plugins/discord/discord_config_api', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({action: 'generate_auth_key'})

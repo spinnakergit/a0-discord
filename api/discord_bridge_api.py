@@ -12,7 +12,7 @@ class DiscordBridgeApi(ApiHandler):
 
     @classmethod
     def requires_csrf(cls) -> bool:
-        return False
+        return True
 
     async def process(self, input: dict, request: Request) -> dict | Response:
         action = input.get("action", "status")

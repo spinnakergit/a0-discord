@@ -37,6 +37,7 @@
 
 <script>
 (function() {
+    const fetchApi = globalThis.fetchApi || fetch;
     const API_TEST = '/api/plugins/discord/discord_test';
     const API_BRIDGE = '/api/plugins/discord/discord_bridge_api';
 
@@ -67,7 +68,7 @@
         if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
         const info = $('dc-bridge-info');
         try {
-            const resp = await fetch(API_BRIDGE, {
+            const resp = await fetchApi(API_BRIDGE, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({action: action})
@@ -96,7 +97,7 @@
         badge.style.background = '#fff3e0';
         badge.style.color = '#e65100';
         try {
-            const resp = await fetch(API_TEST, {
+            const resp = await fetchApi(API_TEST, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: '{}'
