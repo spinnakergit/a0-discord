@@ -13,7 +13,7 @@ Get the Discord plugin running in under 5 minutes.
 5. Go to **Installation** tab (left sidebar):
    - Keep **Guild Install** checked (not User Install)
    - Under Default Install Settings for Guild Install, add scope `bot`
-   - Add permissions: View Channels, Send Messages, Read Message History, Add Reactions
+   - Add permissions: View Channels, Send Messages, Read Message History, Add Reactions, Manage Messages
 6. Copy the install link > open in browser > invite the bot to your server
 
 ## 2. Install the Plugin (1 min)
@@ -99,9 +99,53 @@ Open Agent Zero chat and try these:
 
 Then go to that channel in Discord and chat directly with Agent Zero.
 
+**Secure your chat bridge** -- see [Securing the Chat Bridge](#securing-the-chat-bridge) below for essential access controls.
+
 ### Monitor for alerts
 > Watch Discord channel YOUR_CHANNEL_ID in server YOUR_SERVER_ID, call it "alerts"
 > Check for new Discord alerts
+
+---
+
+## Securing the Chat Bridge
+
+The chat bridge runs in **restricted mode** by default -- Discord users can only chat conversationally with the LLM and have no access to Agent Zero's tools or system. No additional configuration is needed for safe restricted-mode usage.
+
+However, if you plan to use the chat bridge regularly, these settings add important access control:
+
+### User Allowlist (Recommended)
+
+Restrict which Discord users can interact with the bot. Unlisted users are silently ignored.
+
+**Via WebUI:** Settings > Chat Bridge > User Allowlist > enter Discord user IDs (one per line) > Save
+
+**Via config file:**
+```json
+{
+  "chat_bridge": {
+    "allowed_users": ["YOUR_DISCORD_USER_ID"]
+  }
+}
+```
+
+Get user IDs by enabling Developer Mode in Discord (User Settings > Advanced), then right-click a user > Copy User ID. Changes take effect immediately -- no bridge restart needed.
+
+### Elevated Mode (Advanced -- Read Before Enabling)
+
+Elevated mode grants authenticated Discord users full access to Agent Zero, including tools, code execution, and file operations. **This is disabled by default for good reason.**
+
+Before enabling, read the [full security documentation](../README.md#elevated-mode----important).
+
+**Required steps for safe elevated mode:**
+1. Use a **private Discord server** with only trusted members
+2. Configure the **User Allowlist** (above) with explicit user IDs
+3. Enable elevated mode in WebUI Settings > Chat Bridge > Elevated Mode
+4. Share the auth key only through **secure, out-of-band channels**
+5. Use the default **1-hour session timeout** or shorter
+
+**Optimal configuration:** A dedicated server with a single user and the bot. If collaboration is needed, only add users you deeply trust.
+
+Users authenticate in Discord by typing `!auth <key>` (auto-deleted for security -- requires **Manage Messages** bot permission) and deauthenticate with `!deauth`.
 
 ---
 
@@ -136,7 +180,7 @@ Then go to that channel in Discord and chat directly with Agent Zero.
 | "Bot token not configured" | Write token to config.json or set DISCORD_BOT_TOKEN env var |
 | "Discord API error 401" | Invalid token -- regenerate in Developer Portal > Bot > Reset Token |
 | "Discord API error 403" | Bot lacks channel permissions (View Channels, Send Messages, Read Message History) |
-| Chat bridge not responding | Ensure Message Content Intent is enabled in Developer Portal |
+| Chat bridge not responding | Check User Allowlist (if configured), ensure Message Content Intent is enabled in Developer Portal |
 | Changes not taking effect | Clear cache and restart: `find /a0 -path '*/discord*/__pycache__' -exec rm -rf {} +` then `supervisorctl restart run_ui` |
 
 For detailed troubleshooting, see [README.md](README.md#troubleshooting).

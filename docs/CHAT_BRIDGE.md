@@ -16,14 +16,21 @@ Discord Gateway (WebSocket) ---> ChatBridgeBot (discord.py)
 on_message() handler checks:
   1. Is this channel in our designated list? (skip if not)
   2. Is the author a bot? (skip bots)
-  3. Is the message empty? (skip empty)
+  3. Is the author on the User Allowlist? (silently ignore if not)
+  4. Is this an auth/deauth command? (handle separately)
+  5. Is the message empty? (skip empty)
+  6. Rate limit check (10 msgs / 60 sec per user)
     |
     v
 Show typing indicator in Discord
     |
     v
-Create/retrieve AgentContext for this channel (via initialize_agent() + AgentContext())
-Route through AgentContext.communicate(UserMessage(...))
+Route based on session state:
+  - Elevated session active -> full Agent Zero agent loop
+  - Otherwise -> restricted utility model (conversation only)
+    |
+    v
+Create/retrieve AgentContext for this channel
   - Message prefixed: "[Discord - DisplayName]: message text"
   - Image attachments: saved to temp files and forwarded as file paths
   - Each channel has its own conversation context (independent history)
@@ -39,6 +46,118 @@ Send response back to Discord channel
 
 ---
 
+## Security
+
+The chat bridge is designed with a **defense-in-depth** approach. Multiple independent layers work together to control who can interact with the bot and what they can do.
+
+### Privilege Isolation (Architectural)
+
+By default, the chat bridge operates in **restricted mode**: Discord messages are processed via a direct LLM call (`call_utility_model`) that has zero access to Agent Zero's tools, code execution, file system, or any other system resources. This isolation is enforced at the code level, not through prompt instructions -- even a successful prompt injection cannot escalate privileges in restricted mode.
+
+### User Allowlist (Access Control)
+
+The User Allowlist controls which Discord users can interact with the chat bridge at all. When configured, unlisted users are **silently ignored** -- the bot sends no response and reveals no information about its existence or capabilities.
+
+| Allowlist State | Behavior |
+|-----------------|----------|
+| Empty (default) | All server members can interact |
+| Populated | Only listed user IDs receive responses |
+
+**Key behaviors:**
+- Changes take effect **immediately** -- no bridge restart needed. The config is read on every incoming message.
+- Unlisted users receive **no feedback** -- this prevents information leakage.
+- User IDs must be Discord snowflake IDs (17-20 digit numbers). Get them via Developer Mode (right-click user > Copy User ID).
+
+Configure in the WebUI (Settings > Chat Bridge > User Allowlist) or in `config.json`:
+```json
+{
+  "chat_bridge": {
+    "allowed_users": ["123456789012345678", "987654321098765432"]
+  }
+}
+```
+
+### Elevated Mode (Full Agent Access)
+
+Elevated mode is an **opt-in** feature that allows authenticated Discord users to access the full Agent Zero agent loop, including all tools, code execution, file operations, and system access.
+
+**This is disabled by default.** When enabled, users must authenticate at runtime using `!auth <key>` before gaining elevated access.
+
+#### Security Model
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ Layer 1: Discord Server                                 │
+│   Only members of your private server can see channels  │
+│                                                         │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │ Layer 2: User Allowlist                           │  │
+│  │   Only listed user IDs get any bot response       │  │
+│  │                                                   │  │
+│  │  ┌─────────────────────────────────────────────┐  │  │
+│  │  │ Layer 3: Auth Key (2FA)                     │  │  │
+│  │  │   Must know the key to elevate              │  │  │
+│  │  │                                             │  │  │
+│  │  │  ┌───────────────────────────────────────┐  │  │  │
+│  │  │  │ Layer 4: Session Timeout              │  │  │  │
+│  │  │  │   Elevated access expires             │  │  │  │
+│  │  │  └───────────────────────────────────────┘  │  │  │
+│  │  └─────────────────────────────────────────────┘  │  │
+│  └───────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### Optimal Configuration
+
+The **recommended setup** for elevated mode:
+
+1. **Dedicated private Discord server** -- Create a server specifically for Agent Zero. Do not enable elevated mode on public or community servers. The server is part of your security perimeter.
+
+2. **Defined User Allowlist** -- Explicitly list every Discord user ID that should have access. This is your primary access control.
+
+3. **Minimal membership** -- Ideally a single user and the bot. This is the strongest configuration because the communication channel is fully controlled. If collaboration is needed, only invite people you deeply trust.
+
+4. **Short session timeouts** -- Use the default 1-hour timeout or shorter. This limits exposure if a session is left active.
+
+5. **Secure key distribution** -- Share the auth key only through secure, out-of-band channels (not through Discord). Regenerate if you suspect compromise.
+
+7. **Manage Messages permission** -- The bot **must** have the `Manage Messages` permission to auto-delete `!auth` commands. Without this, the auth key will remain visible in the channel history. Grant this in Server Settings > Roles > [bot role] > Manage Messages, or re-invite the bot with updated permissions.
+
+6. **Discord security awareness** -- Understand Discord's permission model: channel visibility, role hierarchy, and server verification levels all affect who can observe bot interactions.
+
+#### What Elevated Mode Grants
+
+When a user authenticates with `!auth <key>`, their messages are routed through the **full Agent Zero agent loop** instead of the restricted utility model. This gives them access to:
+
+- All Agent Zero tools (code execution, file read/write, web requests, etc.)
+- The host filesystem (within the Agent Zero container)
+- All installed plugins and their capabilities
+- Network access from the container
+
+**Only enable elevated mode if you fully understand these implications.**
+
+#### Authentication Flow
+
+1. User types `!auth <key>` in a bridge channel
+2. The `!auth` message is **automatically deleted** to protect the key (requires the bot to have **Manage Messages** permission -- without it, the key remains visible in chat)
+3. If the key matches, the user's session is elevated for the configured timeout
+4. All messages from this user now route through the full agent loop
+5. Session expires after the timeout, or the user types `!deauth`
+6. On deauth, conversation history is cleared and the user returns to restricted mode
+
+#### Deauth Commands
+
+The bot recognizes multiple aliases for ending an elevated session:
+`!deauth`, `!dauth`, `!unauth`, `!logout`, `!logoff`
+
+This tolerance for common typos ensures users can always exit elevated mode.
+
+### Rate Limiting
+
+A sliding-window rate limiter (10 messages per 60 seconds per user) protects against abuse. This applies in both restricted and elevated modes.
+
+---
+
 ## Configuration
 
 The chat bridge has two configuration layers:
@@ -50,9 +169,13 @@ Stored in `config.json` (via WebUI or API). Controls whether the bot auto-starts
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `chat_bridge.auto_start` | bool | `false` | Start the bot automatically when Agent Zero initializes |
+| `chat_bridge.allowed_users` | list | `[]` | Discord user IDs allowed to interact. Empty = all users. |
+| `chat_bridge.allow_elevated` | bool | `false` | Enable elevated mode (full agent access via `!auth`) |
+| `chat_bridge.auth_key` | string | `""` | Auth key for elevated mode. Auto-generated on first use if empty. |
+| `chat_bridge.session_timeout` | int | `3600` | Elevated session timeout in seconds (0 = never expire) |
 
 **Set via WebUI:**
-Go to Discord plugin settings page > Chat Bridge section > check "Auto-start chat bridge on agent startup" > Save.
+Go to Discord plugin settings page > Chat Bridge section. Configure the User Allowlist and elevated mode settings as needed, then click **Save Discord Settings**.
 
 **Set via config file** (`usr/plugins/discord/config.json`):
 ```json
@@ -61,7 +184,10 @@ Go to Discord plugin settings page > Chat Bridge section > check "Auto-start cha
     "token": "YOUR_BOT_TOKEN"
   },
   "chat_bridge": {
-    "auto_start": true
+    "auto_start": true,
+    "allowed_users": ["YOUR_DISCORD_USER_ID"],
+    "allow_elevated": false,
+    "session_timeout": 3600
   }
 }
 ```
@@ -74,7 +200,11 @@ curl -X POST http://localhost/api/plugins/discord/discord_config_api \
     "action": "set",
     "config": {
       "bot": {"token": "YOUR_BOT_TOKEN"},
-      "chat_bridge": {"auto_start": true}
+      "chat_bridge": {
+        "auto_start": true,
+        "allowed_users": ["YOUR_DISCORD_USER_ID"],
+        "allow_elevated": false
+      }
     }
   }'
 ```
@@ -151,6 +281,7 @@ The bot needs these permissions in the channel(s) you designate:
 | View Channel | See the channel |
 | Read Message History | Access messages |
 | Send Messages | Reply with LLM responses |
+| Manage Messages | Auto-delete `!auth` commands to protect the key (required for elevated mode) |
 
 ### 4. Bot Invited to Server
 The bot must be a member of the server containing the channel. Use the OAuth2 URL Generator in the Developer Portal to create an invite link.
@@ -297,8 +428,11 @@ The next message in that channel will create a new conversation context.
 ### Message Routing
 - Only messages in explicitly registered channels are processed
 - Bot messages are ignored (prevents loops)
+- Users not on the allowlist are silently ignored (when allowlist is configured)
 - Empty messages are ignored
 - Messages are prefixed with `[Discord - DisplayName]:` for LLM context
+- If the user has an active elevated session, messages route through the full agent loop
+- Otherwise, messages route through the restricted utility model (conversation only)
 
 ### Image Handling
 When a user sends an image attachment in a chat bridge channel:
@@ -367,9 +501,10 @@ Only one bot instance runs at a time. `start_chat_bridge()` checks if a bot is a
 
 ### Bot connects but doesn't respond to messages
 
-1. **Channel not registered** — The bot only responds in channels added via `discord_chat add_channel`. Check with `discord_chat list`.
-2. **Missing Message Content intent** — Enable it in Developer Portal > Bot > Privileged Gateway Intents.
-3. **Bot doesn't have channel access** — Ensure the bot role has View Channel + Read Message History + Send Messages in the target channel.
+1. **User not on allowlist** — If `chat_bridge.allowed_users` is configured, only listed user IDs get responses. Check the allowlist in WebUI Settings or `config.json`.
+2. **Channel not registered** — The bot only responds in channels added via `discord_chat add_channel`. Check with `discord_chat list`.
+3. **Missing Message Content intent** — Enable it in Developer Portal > Bot > Privileged Gateway Intents.
+4. **Bot doesn't have channel access** — Ensure the bot role has View Channel + Read Message History + Send Messages in the target channel.
 
 ### "Bot failed to connect within timeout"
 

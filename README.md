@@ -25,7 +25,7 @@ A full-featured Discord integration plugin for Agent Zero that enables reading, 
 5. Go to **Installation** tab (left sidebar):
    - Under **Installation Contexts**, keep **Guild Install** checked (uncheck User Install if present)
    - Under **Default Install Settings** for Guild Install, add scope `bot`
-   - Add bot permissions: `View Channels`, `Send Messages`, `Read Message History`, `Add Reactions`, `Embed Links`
+   - Add bot permissions: `View Channels`, `Send Messages`, `Read Message History`, `Add Reactions`, `Embed Links`, `Manage Messages` (required for auto-deleting `!auth` commands)
 6. Copy the install link and open it in a browser to invite the bot to your server
 
 ### 2. Install the Plugin
@@ -175,9 +175,11 @@ usr/plugins/discord/
 
 ## Security
 
-This plugin has been security-hardened with the following measures:
+This plugin has been security-hardened with multiple layers of defense. **Read this section carefully before enabling elevated mode.**
 
-- **Chat bridge privilege isolation** -- The chat bridge uses direct LLM calls (`call_utility_model`) instead of the full agent loop. Discord users have **zero access** to tools, code execution, file operations, or system resources. This is enforced architecturally, not by prompt instructions.
+### Core Protections
+
+- **Chat bridge privilege isolation** -- The chat bridge uses direct LLM calls (`call_utility_model`) instead of the full agent loop. In restricted mode (the default), Discord users have **zero access** to tools, code execution, file operations, or system resources. This is enforced architecturally, not by prompt instructions.
 - **Prompt injection defense** -- Input sanitization with Unicode homoglyph normalization (NFKC), zero-width character stripping, and pattern-based injection detection.
 - **Snowflake ID validation** -- All Discord IDs are validated as 17-20 digit numbers before use in API calls.
 - **SSRF protection** -- Image downloads restricted to Discord CDN hosts only.
@@ -186,7 +188,58 @@ This plugin has been security-hardened with the following measures:
 - **Server allowlist enforcement** -- Configured server allowlists are checked consistently across all tools.
 - **Sanitized error messages** -- Internal details (file paths, stack traces) are never exposed to users.
 
-> **Update notice (March 2026):** If you installed this plugin prior to the security hardening commit, please reinstall to pick up these fixes. The most critical change is the chat bridge architectural isolation — earlier versions routed Discord messages through the full agent loop, which could allow privilege escalation.
+### User Allowlist
+
+The **User Allowlist** restricts which Discord users can interact with the chat bridge bot. When configured, only the listed user IDs receive responses -- all other users are silently ignored (no error message, no information leakage about the bot's capabilities).
+
+- **Empty allowlist** (default): All server members can interact with the bot.
+- **Populated allowlist**: Only listed Discord user IDs can interact. Changes take effect immediately without restarting the bridge.
+
+Configure via WebUI (Settings > Chat Bridge > User Allowlist) or in `config.json`:
+```json
+{
+  "chat_bridge": {
+    "allowed_users": ["YOUR_DISCORD_USER_ID"]
+  }
+}
+```
+
+Get user IDs by enabling Developer Mode in Discord (User Settings > Advanced > Developer Mode), then right-click a user > Copy User ID.
+
+### Elevated Mode -- IMPORTANT
+
+Elevated mode allows authenticated Discord users to access the **full Agent Zero agent loop** -- including tools, code execution, file access, and all system capabilities. This is powerful but carries significant security implications.
+
+**How elevated mode works:**
+1. An admin enables `allow_elevated: true` in config and obtains the auth key from the WebUI
+2. A Discord user types `!auth <key>` in a bridge channel (the message is auto-deleted to protect the key -- requires **Manage Messages** bot permission)
+3. The user's session is elevated for the configured timeout (default: 1 hour)
+4. The user types `!deauth` (or `!dauth`, `!unauth`, `!logout`, `!logoff`) to end the session early
+5. Session state and conversation history are cleared on deauth
+
+**Optimal configuration for elevated mode:**
+
+> **The recommended setup is a private Discord server with only trusted members, a defined User Allowlist, and a single bot.** Ideally, the server should have a single user and the bot -- this provides the strongest security posture by ensuring the communication channel is fully controlled.
+
+If collaboration is required, the plugin supports multiple users, but each user must be explicitly trusted:
+
+1. **Create a dedicated Discord server** -- Do not enable elevated mode on a public or semi-public server. The server itself is part of your security boundary.
+2. **Define the User Allowlist** -- List every user ID that should have access. This is your primary access control layer.
+3. **Limit server membership** -- Only invite users you deeply trust. Anyone with access to the server could potentially observe bot interactions (depending on channel permissions).
+4. **Understand Discord security principles** -- Channel permissions, role hierarchies, and server verification levels all affect who can see and interact with the bot. Ensure you understand these before deploying elevated mode.
+5. **Use short session timeouts** -- The default 1-hour timeout limits exposure if a session is left open.
+6. **Protect the auth key** -- The `!auth` message is auto-deleted (requires **Manage Messages** permission), but share the key only through secure, out-of-band channels. Regenerate it if you suspect compromise.
+
+**What elevated mode grants access to:**
+- Agent Zero's full tool suite (code execution, file operations, web access, etc.)
+- The host system's filesystem and network (within Agent Zero's container)
+- All other installed Agent Zero plugins and capabilities
+
+**Only enable elevated mode if you fully understand these implications and trust every user on the allowlist.**
+
+For detailed configuration, see [docs/CHAT_BRIDGE.md](docs/CHAT_BRIDGE.md#security).
+
+> **Update notice (March 2026):** If you installed this plugin prior to the security hardening commit, please reinstall to pick up these fixes. The most critical change is the chat bridge architectural isolation -- earlier versions routed Discord messages through the full agent loop, which could allow privilege escalation.
 
 ## Troubleshooting
 

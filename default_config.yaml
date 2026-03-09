@@ -36,6 +36,21 @@ chat_bridge:
   auto_start: false
   # Channels are managed via the discord_chat tool, not config
 
+  # User allowlist: only these Discord user IDs can interact with the bot.
+  # Empty list = allow all server members. Get IDs via Discord Developer Mode.
+  allowed_users: []
+
+  # Elevated mode: allows authenticated users to access the full Agent Zero
+  # agent loop (with tools, code execution, file access, etc.) via Discord.
+  # Default is restricted mode (conversation only, no tools).
+  allow_elevated: false
+  # Auth key for elevated mode. Auto-generated on first use if left empty.
+  # Shown in WebUI settings. Required to authenticate via !auth <key> in Discord.
+  auth_key: ""
+  # Session timeout in seconds (default: 1 hour). Elevated sessions expire
+  # after this duration and must be re-authenticated.
+  session_timeout: 3600
+
 # Security — prompt injection defense
 security:
   max_message_length: 4000

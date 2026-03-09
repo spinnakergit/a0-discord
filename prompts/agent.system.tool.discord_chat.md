@@ -47,4 +47,16 @@ Manage the Discord chat bridge — a persistent bot that routes Discord messages
 {"action": "status"}
 ~~~
 
-The bot maintains separate conversation contexts per channel. Messages from Discord users are prefixed with their display name. The bot shows a typing indicator while processing. Image attachments are forwarded to the LLM for analysis.
+The bot maintains separate conversation contexts per channel. Messages from Discord users are prefixed with their display name. The bot shows a typing indicator while processing.
+
+**Security layers:**
+- **User Allowlist**: When `chat_bridge.allowed_users` is populated, only listed Discord user IDs can interact with the bot. Unlisted users are silently ignored. Empty list = allow all.
+- **Restricted mode** (default): Direct LLM call with no tool access. Discord users can only chat conversationally.
+- **Elevated mode** (opt-in): Authenticated users get full Agent Zero access (tools, code execution, file access). Requires `allow_elevated: true` in chat bridge config and runtime authentication via `!auth <key>` in Discord.
+
+**Discord-side commands** (typed by users in the Discord channel):
+- `!auth <key>` — Authenticate for elevated access (message is auto-deleted to protect the key)
+- `!deauth` (also `!dauth`, `!unauth`, `!logout`, `!logoff`) — End elevated session, return to restricted mode
+- `!bridge-status` — Check current mode and session expiry
+
+Image attachments are forwarded to the LLM for analysis in elevated mode.

@@ -37,7 +37,7 @@ A full-featured Discord integration plugin for Agent Zero that enables reading, 
    - Under **Installation Contexts**, ensure **Guild Install** is checked
    - Under **Default Install Settings** for Guild Install:
      - Add scope: `bot`
-     - Add bot permissions: `View Channels`, `Send Messages`, `Read Message History`, `Add Reactions`, `Embed Links`
+     - Add bot permissions: `View Channels`, `Send Messages`, `Read Message History`, `Add Reactions`, `Embed Links`, `Manage Messages`
    - Copy the install link
 5. Open the install link in a browser to invite the bot to your server(s)
 
@@ -179,6 +179,10 @@ Configuration is stored in `usr/plugins/discord/config.json`. Defaults come from
 | `polling.interval_minutes` | int | `15` | Default alert polling interval |
 | `polling.auto_analyze_images` | bool | `true` | Analyze images in polled alerts |
 | `chat_bridge.auto_start` | bool | `false` | Auto-start chat bridge on agent init |
+| `chat_bridge.allowed_users` | list | `[]` | Discord user IDs allowed to interact with the bridge. Empty = allow all. |
+| `chat_bridge.allow_elevated` | bool | `false` | Allow authenticated users to access full agent loop via `!auth` |
+| `chat_bridge.auth_key` | string | `""` | Auth key for elevated mode. Auto-generated on first use if empty. |
+| `chat_bridge.session_timeout` | int | `3600` | Elevated session timeout in seconds (0 = never expire) |
 
 ### Token Modes
 
@@ -497,6 +501,28 @@ Agent: Chat bridge started as MyBot#1234. Listening in 1 channel(s).
 
 Go to `#llm-chat` in Discord and start chatting.
 
+### Security Configuration
+
+The chat bridge includes multiple security layers. See [CHAT_BRIDGE.md -- Security](CHAT_BRIDGE.md#security) for full details.
+
+**User Allowlist** -- Restrict which Discord users can interact with the bot:
+```json
+{
+  "chat_bridge": {
+    "allowed_users": ["YOUR_DISCORD_USER_ID"]
+  }
+}
+```
+Unlisted users are silently ignored. Changes take effect immediately without restarting the bridge.
+
+**Elevated Mode** -- Optional full Agent Zero access from Discord. Disabled by default. Requires:
+1. `allow_elevated: true` in config
+2. A configured User Allowlist (strongly recommended)
+3. A private Discord server with only trusted members
+4. Runtime authentication via `!auth <key>` in Discord
+
+Read the [main README security section](../README.md#elevated-mode----important) before enabling.
+
 ### How It Works
 
 ```
@@ -698,11 +724,12 @@ Invalid or expired token. Generate a new token from the Discord Developer Portal
 
 ### Chat Bridge Not Responding
 
-1. Check status: ask "Show Discord chat bridge status"
-2. Verify the channel is registered: ask "List Discord chat bridge channels"
-3. Ensure **Message Content Intent** is enabled in Developer Portal > Bot > Privileged Gateway Intents
-4. The bot only responds in explicitly added channels -- check the channel ID
-5. Check Agent Zero logs for `discord_chat_bridge` logger messages
+1. **Check the User Allowlist** -- If `chat_bridge.allowed_users` is configured, only listed user IDs get responses. Verify your user ID is in the list.
+2. Check status: ask "Show Discord chat bridge status"
+3. Verify the channel is registered: ask "List Discord chat bridge channels"
+4. Ensure **Message Content Intent** is enabled in Developer Portal > Bot > Privileged Gateway Intents
+5. The bot only responds in explicitly added channels -- check the channel ID
+6. Check Agent Zero logs for `discord_chat_bridge` logger messages
 
 ### Chat Bridge Won't Start
 

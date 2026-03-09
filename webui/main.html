@@ -16,9 +16,7 @@
     </div>
 
     <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-        <button onclick="dcTestConnection()" style="background: #5865F2; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Test Connection</button>
-        <button onclick="dcAction('Sync all Discord server members')" style="background: var(--bg-secondary, #f0f0f0); color: var(--text-primary, #333); border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Sync Members</button>
-        <button onclick="dcAction('Show Discord persona registry')" style="background: var(--bg-secondary, #f0f0f0); color: var(--text-primary, #333); border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">View Registry</button>
+        <button id="dc-test-btn" style="background: #5865F2; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Test Connection</button>
     </div>
 
     <!-- Chat Bridge Section -->
@@ -27,49 +25,108 @@
             <h4 style="margin: 0; color: #5865F2;">Chat Bridge</h4>
             <span id="dc-bridge-status" style="padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 600; background: #f5f5f5; color: #888;">Unknown</span>
         </div>
-        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-            <button onclick="dcAction('Start the Discord chat bridge')" style="background: #43a047; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Start Bridge</button>
-            <button onclick="dcAction('Stop the Discord chat bridge')" style="background: #e53935; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Stop Bridge</button>
-            <button onclick="dcAction('Show Discord chat bridge status')" style="background: var(--bg-secondary, #f0f0f0); color: var(--text-primary, #333); border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Bridge Status</button>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+            <button id="dc-bridge-start" style="background: #43a047; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Start Bridge</button>
+            <button id="dc-bridge-stop" style="background: #e53935; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Stop Bridge</button>
+            <button id="dc-bridge-restart" style="background: #ff9800; color: #fff; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Restart Bridge</button>
+            <button id="dc-bridge-refresh" style="background: var(--bg-secondary, #f0f0f0); color: var(--text-primary, #333); border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;">Refresh Status</button>
         </div>
+        <div id="dc-bridge-info" style="font-size: 11px; color: var(--text-secondary, #888);"></div>
     </div>
 </div>
 
 <script>
-async function dcTestConnection() {
-    const badge = document.getElementById('discord-status');
-    badge.textContent = 'Testing...';
-    badge.style.background = '#fff3e0';
-    badge.style.color = '#e65100';
-    try {
-        const resp = await fetch('/api/plugins/discord/discord_test', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'});
-        const data = await resp.json();
-        if (data.ok) {
-            badge.textContent = 'Connected as ' + data.user;
+(function() {
+    const API_TEST = '/api/plugins/discord/discord_test';
+    const API_BRIDGE = '/api/plugins/discord/discord_bridge_api';
+
+    function $(id) { return document.getElementById(id); }
+
+    function setBridgeBadge(status) {
+        const badge = $('dc-bridge-status');
+        if (!badge) return;
+        if (status.running && status.status === 'connected') {
+            badge.textContent = 'Connected' + (status.user ? ' as ' + status.user : '');
             badge.style.background = '#e8f5e9';
             badge.style.color = '#2e7d32';
+            if (status.guilds !== undefined) {
+                $('dc-servers').textContent = status.guilds;
+            }
+        } else if (status.running) {
+            badge.textContent = status.status || 'Connecting...';
+            badge.style.background = '#fff3e0';
+            badge.style.color = '#e65100';
         } else {
-            badge.textContent = data.error || 'Error';
+            badge.textContent = status.status || 'Stopped';
+            badge.style.background = '#f5f5f5';
+            badge.style.color = '#888';
+        }
+    }
+
+    async function bridgeAction(action, btn) {
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+        const info = $('dc-bridge-info');
+        try {
+            const resp = await fetch(API_BRIDGE, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: action})
+            });
+            const data = await resp.json();
+            setBridgeBadge(data);
+            if (info) {
+                if (data.ok) {
+                    info.textContent = data.message || '';
+                    info.style.color = '#2e7d32';
+                } else {
+                    info.textContent = data.error || 'Unknown error';
+                    info.style.color = '#c62828';
+                }
+                setTimeout(() => { info.textContent = ''; }, 5000);
+            }
+        } catch (e) {
+            if (info) { info.textContent = 'API unavailable'; info.style.color = '#c62828'; }
+        }
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    }
+
+    async function testConnection() {
+        const badge = $('discord-status');
+        badge.textContent = 'Testing...';
+        badge.style.background = '#fff3e0';
+        badge.style.color = '#e65100';
+        try {
+            const resp = await fetch(API_TEST, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: '{}'
+            });
+            const data = await resp.json();
+            if (data.ok) {
+                badge.textContent = 'Connected as ' + data.user;
+                badge.style.background = '#e8f5e9';
+                badge.style.color = '#2e7d32';
+            } else {
+                badge.textContent = data.error || 'Error';
+                badge.style.background = '#fce4ec';
+                badge.style.color = '#c62828';
+            }
+        } catch (e) {
+            badge.textContent = 'API unavailable';
             badge.style.background = '#fce4ec';
             badge.style.color = '#c62828';
         }
-    } catch (e) {
-        badge.textContent = 'API unavailable';
-        badge.style.background = '#fce4ec';
-        badge.style.color = '#c62828';
     }
-}
 
-function dcAction(msg) {
-    // Send message to agent chat input if available
-    const input = document.querySelector('.chat-input textarea, #chat-input');
-    if (input) {
-        input.value = msg;
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-        alert('Send to agent: ' + msg);
-    }
-}
+    // Bind buttons
+    $('dc-test-btn').addEventListener('click', testConnection);
+    $('dc-bridge-start').addEventListener('click', function() { bridgeAction('start', this); });
+    $('dc-bridge-stop').addEventListener('click', function() { bridgeAction('stop', this); });
+    $('dc-bridge-restart').addEventListener('click', function() { bridgeAction('restart', this); });
+    $('dc-bridge-refresh').addEventListener('click', function() { bridgeAction('status', this); });
 
-dcTestConnection();
+    // Auto-check on load
+    testConnection();
+    bridgeAction('status');
+})();
 </script>

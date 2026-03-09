@@ -51,12 +51,68 @@
         <div style="font-size: 11px; color: var(--text-secondary, #888); margin-bottom: 8px;">
             Route Discord messages through Agent Zero's LLM. Requires a bot token. Channels are managed via the <code>discord_chat</code> tool.
         </div>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; margin-bottom: 8px;">
             <input type="checkbox" data-dc="bridge-autostart"> Auto-start chat bridge on agent startup
         </label>
-        <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 4px;">
+        <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-bottom: 12px;">
             When enabled, the bot connects automatically when Agent Zero starts (if channels are configured).
             Add channels by telling the agent: "Add Discord channel &lt;ID&gt; to the chat bridge"
+        </div>
+
+        <div style="border-top: 1px solid var(--border-color, #e0e0e0); padding-top: 10px; margin-top: 4px;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary, #666); margin-bottom: 6px;">User Allowlist</div>
+            <div style="font-size: 10px; color: var(--text-secondary, #888); margin-bottom: 6px;">
+                Only these Discord users can interact with the bot. Leave empty to allow all server members.
+                Get user IDs by enabling Developer Mode in Discord (Settings &gt; Advanced), then right-click a user &gt; Copy User ID.
+            </div>
+            <textarea data-dc="allowed-users" rows="3" placeholder="Enter Discord user IDs, one per line" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 11px; font-family: monospace; box-sizing: border-box; resize: vertical;"></textarea>
+            <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 2px;">One user ID per line. Users not on the list are silently ignored (no response, no error).</div>
+        </div>
+
+        <div style="border-top: 1px solid var(--border-color, #e0e0e0); padding-top: 10px; margin-top: 10px;">
+            <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary, #666); margin-bottom: 6px;">Elevated Mode (2FA)</div>
+            <div style="font-size: 10px; color: var(--text-secondary, #888); margin-bottom: 8px;">
+                When enabled, authenticated users can unlock full Agent Zero access from Discord using <code>!auth &lt;key&gt;</code>.
+                Default mode is restricted (chat only, no tools).
+            </div>
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; margin-bottom: 8px;">
+                <input type="checkbox" data-dc="allow-elevated"> Allow elevated mode
+            </label>
+            <div data-dc="elevated-warning" style="display: none; background: #fce4ec; border: 1px solid #ef9a9a; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                <div style="font-size: 11px; font-weight: 700; color: #c62828; margin-bottom: 4px;">SECURITY NOTICE</div>
+                <div style="font-size: 11px; color: #b71c1c; line-height: 1.5;">
+                    Elevated mode grants Discord users <strong>full access</strong> to Agent Zero's capabilities, including code execution, file operations, and system tools.
+                    Before enabling, you <strong>must</strong> read and understand the security section in the plugin's
+                    <strong>README.md</strong> (located in the plugin directory or on the plugin's GitHub page).
+                    <br><br>
+                    <strong>Recommended configuration:</strong> A private server with only trusted members, a defined User Allowlist above, and short session timeouts. Only allow users you deeply trust.
+                </div>
+            </div>
+            <div data-dc="elevated-settings" style="display: none; margin-top: 8px;">
+                <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Auth Key</label>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                    <input type="text" data-dc="auth-key" readonly style="flex: 1; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 11px; font-family: monospace; background: var(--bg-secondary, #f5f5f5); box-sizing: border-box;">
+                    <button data-dc="regen-key-btn" style="background: #5865F2; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Regenerate</button>
+                    <button data-dc="copy-key-btn" style="background: var(--bg-secondary, #e0e0e0); color: var(--text-primary, #333); border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Copy</button>
+                </div>
+                <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 4px;">
+                    Share this key securely. Users type <code>!auth &lt;key&gt;</code> in Discord to elevate. The message is auto-deleted.
+                </div>
+                <label style="font-size: 12px; font-weight: 500; display: block; margin-top: 10px; margin-bottom: 4px;">Session Timeout</label>
+                <select data-dc="session-timeout" style="padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px;">
+                    <option value="3600">1 hour</option>
+                    <option value="7200">2 hours</option>
+                    <option value="14400">4 hours</option>
+                    <option value="28800">8 hours</option>
+                    <option value="43200">12 hours</option>
+                    <option value="86400">24 hours</option>
+                    <option value="0">Never expire</option>
+                </select>
+                <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 2px;">How long elevated sessions last before requiring re-authentication.</div>
+                <div data-dc="never-expire-warning" style="display: none; background: #fff3e0; border: 1px solid #ffcc80; border-radius: 4px; padding: 6px 8px; font-size: 10px; color: #e65100; margin-top: 6px;">
+                    <strong>Security warning:</strong> "Never expire" means an elevated session stays active until the bot restarts or the user runs <code>!deauth</code>. If the auth key is compromised, the attacker retains full agent access indefinitely. Use with caution.
+                </div>
+            </div>
         </div>
     </div>
 
@@ -102,10 +158,31 @@
             }
             if (c.chat_bridge) {
                 el('bridge-autostart').checked = c.chat_bridge.auto_start === true;
+                if (c.chat_bridge.allowed_users?.length) el('allowed-users').value = c.chat_bridge.allowed_users.join('\n');
+                el('allow-elevated').checked = c.chat_bridge.allow_elevated === true;
+                if (c.chat_bridge.auth_key) el('auth-key').value = c.chat_bridge.auth_key;
+                const timeoutSec = c.chat_bridge.session_timeout;
+                if (timeoutSec !== undefined) el('session-timeout').value = String(timeoutSec);
+                toggleElevatedSettings();
+                toggleNeverExpireWarning();
             }
         } catch (e) {
             console.error('[Discord Config] Load error:', e);
         }
+    }
+
+    function toggleElevatedSettings() {
+        const show = el('allow-elevated')?.checked;
+        const settings = el('elevated-settings');
+        const warning = el('elevated-warning');
+        if (settings) settings.style.display = show ? 'block' : 'none';
+        if (warning) warning.style.display = show ? 'block' : 'none';
+    }
+
+    function toggleNeverExpireWarning() {
+        const val = el('session-timeout')?.value;
+        const warning = el('never-expire-warning');
+        if (warning) warning.style.display = val === '0' ? 'block' : 'none';
     }
 
     async function saveConfig() {
@@ -133,7 +210,11 @@
                 auto_analyze_images: el('auto-images')?.checked ?? true
             },
             chat_bridge: {
-                auto_start: el('bridge-autostart')?.checked ?? false
+                auto_start: el('bridge-autostart')?.checked ?? false,
+                allowed_users: (el('allowed-users')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
+                allow_elevated: el('allow-elevated')?.checked ?? false,
+                auth_key: el('auth-key')?.value || '',
+                session_timeout: parseInt(el('session-timeout')?.value) || 3600
             }
         };
 
@@ -176,6 +257,44 @@
     // Bind save button
     const saveBtn = el('save-btn');
     if (saveBtn) saveBtn.addEventListener('click', saveConfig);
+
+    // Bind elevated mode toggle
+    const elevatedToggle = el('allow-elevated');
+    if (elevatedToggle) elevatedToggle.addEventListener('change', toggleElevatedSettings);
+
+    // Bind session timeout change (show/hide never-expire warning)
+    const timeoutSelect = el('session-timeout');
+    if (timeoutSelect) timeoutSelect.addEventListener('change', toggleNeverExpireWarning);
+
+    // Bind regenerate key button
+    const regenBtn = el('regen-key-btn');
+    if (regenBtn) regenBtn.addEventListener('click', async function() {
+        try {
+            const resp = await fetch('/api/plugins/discord/discord_config_api', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({action: 'generate_auth_key'})
+            });
+            const result = await resp.json();
+            if (result.auth_key) {
+                el('auth-key').value = result.auth_key;
+            }
+        } catch (e) {
+            console.error('[Discord Config] Key generation error:', e);
+        }
+    });
+
+    // Bind copy key button
+    const copyBtn = el('copy-key-btn');
+    if (copyBtn) copyBtn.addEventListener('click', function() {
+        const key = el('auth-key')?.value;
+        if (key) {
+            navigator.clipboard.writeText(key).then(() => {
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+            });
+        }
+    });
 
     // Load config on init
     loadConfig();

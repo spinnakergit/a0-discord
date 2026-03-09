@@ -35,8 +35,18 @@ class DiscordConfigApi(ApiHandler):
         action = input.get("action", "get")
         if request.method == "GET" or action == "get":
             return self._get_config()
+        elif action == "generate_auth_key":
+            return self._generate_auth_key()
         else:
             return self._set_config(input)
+
+    def _generate_auth_key(self) -> dict:
+        """Generate a new auth key (does not save — user must click Save)."""
+        try:
+            from plugins.discord.helpers.sanitize import generate_auth_key
+            return {"auth_key": generate_auth_key()}
+        except Exception:
+            return {"error": "Failed to generate auth key."}
 
     def _get_config(self) -> dict:
         try:
@@ -88,6 +98,12 @@ class DiscordConfigApi(ApiHandler):
                 if new_token and "*" * 4 in new_token:
                     # Masked token — preserve existing
                     config.setdefault(key, {})["token"] = existing.get(key, {}).get("token", "")
+
+            # Preserve existing auth_key if not provided or empty in the new config
+            new_auth_key = config.get("chat_bridge", {}).get("auth_key", "")
+            existing_auth_key = existing.get("chat_bridge", {}).get("auth_key", "")
+            if not new_auth_key and existing_auth_key:
+                config.setdefault("chat_bridge", {})["auth_key"] = existing_auth_key
 
             from plugins.discord.helpers.sanitize import secure_write_json
             secure_write_json(config_path, config)
