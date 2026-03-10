@@ -186,13 +186,13 @@ asyncio.run(test())
 
 ### WebUI Config Uses Custom API Instead of Framework Settings Store
 
-The `webui/config.html` settings panel uses a custom API endpoint (`discord_config_api`) with raw `fetch()` calls instead of the framework's standard `$store.pluginSettings` Alpine.js store used by core plugins (e.g., the Memory plugin).
+The `webui/config.html` settings panel uses a custom API endpoint (`discord_config_api`) with raw `fetch()` calls instead of the framework's standard settings store.
 
 **Why:** Discord tokens are sensitive credentials. Our custom API masks tokens in GET responses (showing only first 4 + last 4 characters) and preserves existing tokens when a masked value is submitted back. The framework's generic `get_config`/`save_config` API does not provide this masking behavior, which would expose full tokens in the browser.
 
 **Impact:** Per-project and per-agent config scoping through the WebUI settings modal will not work -- changes made in the config UI always write to the global plugin config at `usr/plugins/discord/config.json`. However, file-based scoping still works: you can manually create scoped config files at the paths defined in the [Settings Resolution](https://www.agent-zero.ai/p/docs/plugins/#settings-resolution) hierarchy (e.g., `usr/agents/<profile>/plugins/discord/config.json`).
 
-**Future fix:** If the framework adds a hook for custom serialization or field-level masking in the settings store, the config UI should be migrated to use `$store.pluginSettings` for full scope support.
+**Note:** As of the March 2026 framework update, settings values are exposed on `config` and wrapper/modal variables on `context` (replacing the old `$store.pluginSettings` pattern). Since this plugin uses a custom API rather than framework bindings, no code changes were needed.
 
 ---
 

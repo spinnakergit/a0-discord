@@ -1,3 +1,4 @@
+name: discord
 title: Discord Integration
 description: Read, summarize, and interact with Discord servers. Channel/thread summarization, insight extraction, persona tracking, bot messaging, and real-time chat bridge.
 version: 1.0.0
