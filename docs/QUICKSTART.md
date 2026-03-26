@@ -105,8 +105,9 @@ Grants authenticated Discord users full access to Agent Zero. Disabled by defaul
 
 ## Known Behaviors
 
-1. **First poll returns no alerts** — The initial `discord_poll check` sets the baseline message ID. Only messages posted *after* the first poll are detected.
-2. **Chat bridge requires bot token** — User tokens cannot use Discord's Gateway (WebSocket). The bridge will not start without a bot token configured.
+1. **Chat bridge requires channel registration** — The bridge connects to Discord but only responds in channels you explicitly add. Starting the bridge alone is not enough — you must also tell the agent: "Add channel YOUR_CHANNEL_ID to the chat bridge." The **Servers** allowlist in config controls which servers the *tools* can access; it does not affect the bridge.
+2. **First poll returns no alerts** — The initial `discord_poll check` sets the baseline message ID. Only messages posted *after* the first poll are detected.
+3. **Chat bridge requires bot token** — User tokens cannot use Discord's Gateway (WebSocket). The bridge will not start without a bot token configured.
 3. **Config changes require restart** — After editing config.json directly, restart Agent Zero: `supervisorctl restart run_ui`. WebUI settings changes via the Save button take effect immediately.
 4. **Image analysis requires multimodal model** — Charts/screenshots in alerts are forwarded to the LLM. Text-only models receive the data but cannot interpret images.
 5. **Message Content Intent required** — Without this enabled in Developer Portal > Bot > Privileged Gateway Intents, the bot receives empty message bodies.
@@ -123,7 +124,7 @@ Grants authenticated Discord users full access to Agent Zero. Disabled by defaul
 | "Bot token not configured" | Enter token in WebUI Settings, or write to config.json, or set `DISCORD_BOT_TOKEN` env var |
 | "Discord API error 401" | Invalid token — regenerate in Developer Portal > Bot > Reset Token |
 | "Discord API error 403" | Bot lacks channel permissions (View Channels, Send Messages, Read Message History) |
-| Chat bridge not responding | Check User Allowlist (if configured), ensure Message Content Intent is enabled |
+| Chat bridge not responding | Most common: no channels registered. Tell the agent: "Add channel ID to the chat bridge." Also check User Allowlist and Message Content Intent. |
 | Chat bridge won't start | Verify bot token is valid, check network access to `gateway.discord.gg` |
 | Test Connection shows "Checking..." | API endpoint may not be loaded — restart Agent Zero |
 | Settings don't save | Use the **outer** framework Save button, not any button inside the plugin panel |
