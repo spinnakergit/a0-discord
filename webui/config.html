@@ -1,304 +1,296 @@
-<div class="discord-config" id="discord-config-root" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 16px;">
-    <h3 style="color: #5865F2; margin: 0 0 16px 0;">Discord Settings</h3>
+<html>
+<head><title>Discord</title></head>
+<body>
+    <div x-data x-init="
+        if (!config.bot) config.bot = {};
+        if (!config.user) config.user = {};
+        if (!config.defaults) config.defaults = {};
+        if (!config.memory) config.memory = {};
+        if (!config.persona) config.persona = {};
+        if (!config.polling) config.polling = {};
+        if (!config.chat_bridge) config.chat_bridge = {};
+        if (!config.security) config.security = {};
+        if (config.servers === undefined) config.servers = [];
+        if (config.chat_bridge.allowed_users === undefined) config.chat_bridge.allowed_users = [];
+    ">
+        <template x-if="config">
+            <div>
+                <!-- Bot Account (Primary) -->
+                <div class="section-title">Bot Account (Primary)</div>
+                <div class="section-description">
+                    Create a bot at <a href="https://discord.com/developers/applications" target="_blank" style="color: #5865F2;">discord.com/developers</a> to get your token. Required for sending messages.
+                </div>
 
-    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Bot Account (Primary)</div>
-        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Bot Token</label>
-        <input type="password" data-dc="bot-token" placeholder="Discord bot token" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px; box-sizing: border-box;">
-        <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 2px;">From discord.com/developers. Required for sending messages.</div>
-    </div>
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Bot Token</div>
+                        <div class="field-description">From the Discord Developer Portal. Required for all write operations.</div>
+                    </div>
+                    <div class="field-control">
+                        <input type="password" x-model="config.bot.token" placeholder="Discord bot token" />
+                    </div>
+                </div>
 
-    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">User Account (Read-Only)</div>
-        <div style="background: #fff3e0; border: 1px solid #ffcc80; border-radius: 4px; padding: 8px; font-size: 11px; color: #e65100; margin-bottom: 8px;">
-            User tokens are gated to read-only operations. May violate Discord ToS.
-        </div>
-        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">User Token (Optional)</label>
-        <input type="password" data-dc="user-token" placeholder="User token for read-only access" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px; box-sizing: border-box;">
-    </div>
+                <!-- User Account (Read-Only) -->
+                <div class="section-title">User Account (Read-Only)</div>
 
-    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Servers</div>
-        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Allowed Server IDs (one per line)</label>
-        <textarea data-dc="servers-list" rows="3" placeholder="Leave empty for all servers" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px; box-sizing: border-box; resize: vertical;"></textarea>
-    </div>
+                <div style="background: var(--bg-warning, #fff3e0); border: 1px solid var(--border-warning, #ffcc80); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+                    <div style="font-size: 11px; color: var(--text-warning, #e65100); line-height: 1.5;">
+                        User tokens are gated to read-only operations. Using a user token may violate Discord's Terms of Service. Use at your own risk.
+                    </div>
+                </div>
 
-    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Memory</div>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; cursor: pointer;">
-            <input type="checkbox" data-dc="auto-summaries" checked> Auto-save summaries to memory
-        </label>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-bottom: 6px; cursor: pointer;">
-            <input type="checkbox" data-dc="auto-insights" checked> Auto-save insights to memory
-        </label>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer;">
-            <input type="checkbox" data-dc="auto-sync"> Auto-sync personas on read
-        </label>
-    </div>
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">User Token (Optional)</div>
+                        <div class="field-description">For read-only access to servers the bot cannot join.</div>
+                    </div>
+                    <div class="field-control">
+                        <input type="password" x-model="config.user.token" placeholder="User token for read-only access" />
+                    </div>
+                </div>
 
-    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Alert Polling</div>
-        <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Polling Interval (minutes)</label>
-        <input type="number" data-dc="poll-interval" value="15" min="1" max="1440" style="width: 80px; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px;">
-        <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 2px;">How often to check watched channels for new alerts (1-1440 minutes).</div>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; margin-top: 8px; cursor: pointer;">
-            <input type="checkbox" data-dc="auto-images" checked> Auto-analyze images in alerts
-        </label>
-    </div>
+                <!-- Servers -->
+                <div class="section-title">Servers</div>
+                <div class="section-description">
+                    Restrict which Discord servers (guilds) the plugin can access. Leave empty to allow all servers the bot has joined.
+                </div>
 
-    <div style="margin-bottom: 16px; padding: 12px; border: 1px solid var(--border-color, #e0e0e0); border-radius: 6px;">
-        <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary, #666); text-transform: uppercase; margin-bottom: 8px;">Chat Bridge</div>
-        <div style="font-size: 11px; color: var(--text-secondary, #888); margin-bottom: 8px;">
-            Route Discord messages through Agent Zero's LLM. Requires a bot token. Channels are managed via the <code>discord_chat</code> tool.
-        </div>
-        <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; margin-bottom: 8px;">
-            <input type="checkbox" data-dc="bridge-autostart"> Auto-start chat bridge on agent startup
-        </label>
-        <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-bottom: 12px;">
-            When enabled, the bot connects automatically when Agent Zero starts (if channels are configured).
-            Add channels by telling the agent: "Add Discord channel &lt;ID&gt; to the chat bridge"
-        </div>
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Allowed Server IDs</div>
+                        <div class="field-description">One server/guild ID per line. Leave empty for all servers.</div>
+                    </div>
+                    <div class="field-control">
+                        <textarea rows="3"
+                            :value="(config.servers || []).join('\n')"
+                            @input="config.servers = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
+                            placeholder="Leave empty for all servers"></textarea>
+                    </div>
+                </div>
 
-        <div style="border-top: 1px solid var(--border-color, #e0e0e0); padding-top: 10px; margin-top: 4px;">
-            <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary, #666); margin-bottom: 6px;">User Allowlist</div>
-            <div style="font-size: 10px; color: var(--text-secondary, #888); margin-bottom: 6px;">
-                Only these Discord users can interact with the bot. Leave empty to allow all server members.
-                Get user IDs by enabling Developer Mode in Discord (Settings &gt; Advanced), then right-click a user &gt; Copy User ID.
-            </div>
-            <textarea data-dc="allowed-users" rows="3" placeholder="Enter Discord user IDs, one per line" style="width: 100%; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 11px; font-family: monospace; box-sizing: border-box; resize: vertical;"></textarea>
-            <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 2px;">One user ID per line. Users not on the list are silently ignored (no response, no error).</div>
-        </div>
+                <!-- Memory -->
+                <div class="section-title">Memory</div>
 
-        <div style="border-top: 1px solid var(--border-color, #e0e0e0); padding-top: 10px; margin-top: 10px;">
-            <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary, #666); margin-bottom: 6px;">Elevated Mode (2FA)</div>
-            <div style="font-size: 10px; color: var(--text-secondary, #888); margin-bottom: 8px;">
-                When enabled, authenticated users can unlock full Agent Zero access from Discord using <code>!auth &lt;key&gt;</code>.
-                Default mode is restricted (chat only, no tools).
-            </div>
-            <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; cursor: pointer; margin-bottom: 8px;">
-                <input type="checkbox" data-dc="allow-elevated"> Allow elevated mode
-            </label>
-            <div data-dc="elevated-warning" style="display: none; background: #fce4ec; border: 1px solid #ef9a9a; border-radius: 4px; padding: 10px; margin-bottom: 10px;">
-                <div style="font-size: 11px; font-weight: 700; color: #c62828; margin-bottom: 4px;">SECURITY NOTICE</div>
-                <div style="font-size: 11px; color: #b71c1c; line-height: 1.5;">
-                    Elevated mode grants Discord users <strong>full access</strong> to Agent Zero's capabilities, including code execution, file operations, and system tools.
-                    Before enabling, you <strong>must</strong> read and understand the security section in the plugin's
-                    <strong>README.md</strong> (located in the plugin directory or on the plugin's GitHub page).
-                    <br><br>
-                    <strong>Recommended configuration:</strong> A private server with only trusted members, a defined User Allowlist above, and short session timeouts. Only allow users you deeply trust.
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Auto-save summaries</div>
+                        <div class="field-description">Automatically save conversation summaries to agent memory.</div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.memory.auto_save_summaries"
+                                x-init="if (config.memory.auto_save_summaries === undefined) config.memory.auto_save_summaries = true" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Auto-save insights</div>
+                        <div class="field-description">Automatically save channel insights to agent memory.</div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.memory.auto_save_insights"
+                                x-init="if (config.memory.auto_save_insights === undefined) config.memory.auto_save_insights = true" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Persona -->
+                <div class="section-title">Persona</div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Auto-sync personas on read</div>
+                        <div class="field-description">Automatically build user personas when reading messages.</div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.persona.auto_sync_on_read" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Alert Polling -->
+                <div class="section-title">Alert Polling</div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Polling interval (minutes)</div>
+                        <div class="field-description">How often to check watched channels for new alerts (1-1440 minutes).</div>
+                    </div>
+                    <div class="field-control">
+                        <input type="number" min="1" max="1440" x-model.number="config.polling.interval_minutes"
+                            x-init="if (!config.polling.interval_minutes) config.polling.interval_minutes = 15" />
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Auto-analyze images in alerts</div>
+                        <div class="field-description">Automatically analyze image attachments when processing alerts.</div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.polling.auto_analyze_images"
+                                x-init="if (config.polling.auto_analyze_images === undefined) config.polling.auto_analyze_images = true" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Chat Bridge -->
+                <div class="section-title">Chat Bridge</div>
+                <div class="section-description">
+                    Route Discord messages through Agent Zero's LLM. Requires a bot token. Channels are managed via the <code>discord_chat</code> tool.
+                </div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Auto-start on agent startup</div>
+                        <div class="field-description">Automatically connect the bot when Agent Zero starts (if channels are configured).</div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.chat_bridge.auto_start" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">User Allowlist</div>
+                        <div class="field-description">Only these Discord users can interact with the bot. Leave empty to allow all server members. Get user IDs by enabling Developer Mode in Discord (Settings > Advanced), then right-click a user > Copy User ID.</div>
+                    </div>
+                    <div class="field-control">
+                        <textarea rows="3"
+                            :value="(config.chat_bridge.allowed_users || []).join('\n')"
+                            @input="config.chat_bridge.allowed_users = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
+                            placeholder="One user ID per line"></textarea>
+                    </div>
+                </div>
+
+                <!-- Elevated Mode (2FA) -->
+                <div class="section-title">Elevated Mode (2FA)</div>
+                <div class="section-description">
+                    When enabled, authenticated users can unlock full Agent Zero access from Discord using <code>!auth &lt;key&gt;</code>.
+                    Default mode is restricted (chat only, no tools).
+                </div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Allow elevated mode</div>
+                        <div class="field-description">Grants authenticated users full agent access including code execution, file operations, and system tools.</div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.chat_bridge.allow_elevated" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <template x-if="config.chat_bridge.allow_elevated">
+                    <div>
+                        <div style="background: var(--bg-warning, #fce4ec); border: 1px solid var(--border-warning, #ef9a9a); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+                            <div style="font-size: 12px; font-weight: 700; color: var(--text-error, #c62828); margin-bottom: 4px;">Security Notice</div>
+                            <div style="font-size: 11px; color: var(--text-error, #b71c1c); line-height: 1.5;">
+                                Elevated mode grants Discord users <strong>full access</strong> to Agent Zero's capabilities, including code execution, file operations, and system tools.
+                                Before enabling, read the security section in the plugin's <strong>README.md</strong>.
+                                <br><br>
+                                <strong>Recommended:</strong> A private server with only trusted members, a defined User Allowlist above, and short session timeouts. Only allow users you deeply trust.
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <div class="field-label">
+                                <div class="field-title">Auth Key</div>
+                                <div class="field-description">Users send <code>!auth &lt;key&gt;</code> in Discord to elevate. The message is auto-deleted. Share this key securely.</div>
+                            </div>
+                            <div class="field-control" style="display: flex; gap: 6px; align-items: center;">
+                                <input type="text" x-model="config.chat_bridge.auth_key" readonly
+                                    style="font-family: monospace; flex: 1;" />
+                                <button class="btn btn-field" @click="
+                                    (globalThis.fetchApi || fetch)('/api/plugins/discord/discord_config_api', {
+                                        method: 'POST',
+                                        headers: {'Content-Type': 'application/json'},
+                                        body: JSON.stringify({action: 'generate_auth_key'})
+                                    }).then(r => r.json()).then(d => { if (d.auth_key) config.chat_bridge.auth_key = d.auth_key; })
+                                ">Regenerate</button>
+                                <button class="btn btn-field" @click="
+                                    navigator.clipboard.writeText(config.chat_bridge.auth_key || '').then(() => {
+                                        $event.target.textContent = 'Copied!';
+                                        setTimeout(() => $event.target.textContent = 'Copy', 2000);
+                                    })
+                                ">Copy</button>
+                            </div>
+                        </div>
+
+                        <div class="field">
+                            <div class="field-label">
+                                <div class="field-title">Session Timeout</div>
+                                <div class="field-description">How long elevated sessions last before requiring re-authentication.</div>
+                            </div>
+                            <div class="field-control">
+                                <select x-model.number="config.chat_bridge.session_timeout"
+                                    x-init="if (config.chat_bridge.session_timeout === undefined) config.chat_bridge.session_timeout = 3600">
+                                    <option value="3600">1 hour</option>
+                                    <option value="7200">2 hours</option>
+                                    <option value="14400">4 hours</option>
+                                    <option value="28800">8 hours</option>
+                                    <option value="43200">12 hours</option>
+                                    <option value="86400">24 hours</option>
+                                    <option value="0">Never expire</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div x-show="config.chat_bridge.session_timeout == 0"
+                            style="background: var(--bg-warning, #fff3e0); border: 1px solid var(--border-warning, #ffcc80); border-radius: 6px; padding: 8px; font-size: 11px; color: var(--text-warning, #e65100);">
+                            <strong>Security warning:</strong> "Never expire" means an elevated session stays active until the bot restarts or the user runs <code>!deauth</code>. If the auth key is compromised, the attacker retains full agent access indefinitely. Use with caution.
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Security -->
+                <div class="section-title">Security</div>
+                <div class="section-description">Prompt injection defense settings.</div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Sanitize message content</div>
+                        <div class="field-description">Strip potentially dangerous content from incoming messages.</div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.security.sanitize_content"
+                                x-init="if (config.security.sanitize_content === undefined) config.security.sanitize_content = true" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <div class="field-label">
+                        <div class="field-title">Strip injection patterns</div>
+                        <div class="field-description">Remove known prompt injection patterns from messages.</div>
+                    </div>
+                    <div class="field-control">
+                        <label class="toggle">
+                            <input type="checkbox" x-model="config.security.strip_injection_patterns"
+                                x-init="if (config.security.strip_injection_patterns === undefined) config.security.strip_injection_patterns = true" />
+                            <span class="toggler"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
-            <div data-dc="elevated-settings" style="display: none; margin-top: 8px;">
-                <label style="font-size: 12px; font-weight: 500; display: block; margin-bottom: 4px;">Auth Key</label>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <input type="text" data-dc="auth-key" readonly style="flex: 1; padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 11px; font-family: monospace; background: var(--bg-secondary, #f5f5f5); box-sizing: border-box;">
-                    <button data-dc="regen-key-btn" style="background: #5865F2; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Regenerate</button>
-                    <button data-dc="copy-key-btn" style="background: var(--bg-secondary, #e0e0e0); color: var(--text-primary, #333); border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; white-space: nowrap;">Copy</button>
-                </div>
-                <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 4px;">
-                    Share this key securely. Users type <code>!auth &lt;key&gt;</code> in Discord to elevate. The message is auto-deleted.
-                </div>
-                <label style="font-size: 12px; font-weight: 500; display: block; margin-top: 10px; margin-bottom: 4px;">Session Timeout</label>
-                <select data-dc="session-timeout" style="padding: 6px 8px; border: 1px solid var(--border-color, #ddd); border-radius: 4px; font-size: 12px;">
-                    <option value="3600">1 hour</option>
-                    <option value="7200">2 hours</option>
-                    <option value="14400">4 hours</option>
-                    <option value="28800">8 hours</option>
-                    <option value="43200">12 hours</option>
-                    <option value="86400">24 hours</option>
-                    <option value="0">Never expire</option>
-                </select>
-                <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 2px;">How long elevated sessions last before requiring re-authentication.</div>
-                <div data-dc="never-expire-warning" style="display: none; background: #fff3e0; border: 1px solid #ffcc80; border-radius: 4px; padding: 6px 8px; font-size: 10px; color: #e65100; margin-top: 6px;">
-                    <strong>Security warning:</strong> "Never expire" means an elevated session stays active until the bot restarts or the user runs <code>!deauth</code>. If the auth key is compromised, the attacker retains full agent access indefinitely. Use with caution.
-                </div>
-            </div>
-        </div>
+        </template>
     </div>
-
-    <button data-dc="save-btn" style="background: #5865F2; color: #fff; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;">Save Discord Settings</button>
-    <span data-dc="save-status" style="margin-left: 10px; font-size: 12px;"></span>
-    <div style="font-size: 10px; color: var(--text-tertiary, #999); margin-top: 8px;">Use this button (not the outer framework Save) to save Discord settings. Tokens are stored securely with masking.</div>
-</div>
-
-<script>
-(function() {
-    const fetchApi = globalThis.fetchApi || fetch;
-
-    // Scope all lookups to our container — avoids ID conflicts with A0 framework
-    const root = document.querySelector('#discord-config-root') ||
-                 document.querySelector('.discord-config') ||
-                 document.currentScript?.parentElement;
-
-    if (!root) { console.error('[Discord Config] Cannot find config root element'); return; }
-
-    function el(key) {
-        return root.querySelector('[data-dc="' + key + '"]');
-    }
-
-    async function loadConfig() {
-        try {
-            const resp = await fetchApi('/api/plugins/discord/discord_config_api', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'get'})
-            });
-            const c = await resp.json();
-            console.log('[Discord Config] Loaded:', JSON.stringify(c));
-
-            if (c.bot?.token) el('bot-token').value = c.bot.token;
-            if (c.user?.token) el('user-token').value = c.user.token;
-            if (c.servers?.length) el('servers-list').value = c.servers.join('\n');
-            if (c.memory) {
-                el('auto-summaries').checked = c.memory.auto_save_summaries !== false;
-                el('auto-insights').checked = c.memory.auto_save_insights !== false;
-            }
-            if (c.persona) el('auto-sync').checked = c.persona.auto_sync_on_read === true;
-            if (c.polling) {
-                el('poll-interval').value = c.polling.interval_minutes || 15;
-                el('auto-images').checked = c.polling.auto_analyze_images !== false;
-            }
-            if (c.chat_bridge) {
-                el('bridge-autostart').checked = c.chat_bridge.auto_start === true;
-                if (c.chat_bridge.allowed_users?.length) el('allowed-users').value = c.chat_bridge.allowed_users.join('\n');
-                el('allow-elevated').checked = c.chat_bridge.allow_elevated === true;
-                if (c.chat_bridge.auth_key) el('auth-key').value = c.chat_bridge.auth_key;
-                const timeoutSec = c.chat_bridge.session_timeout;
-                if (timeoutSec !== undefined) el('session-timeout').value = String(timeoutSec);
-                toggleElevatedSettings();
-                toggleNeverExpireWarning();
-            }
-        } catch (e) {
-            console.error('[Discord Config] Load error:', e);
-        }
-    }
-
-    function toggleElevatedSettings() {
-        const show = el('allow-elevated')?.checked;
-        const settings = el('elevated-settings');
-        const warning = el('elevated-warning');
-        if (settings) settings.style.display = show ? 'block' : 'none';
-        if (warning) warning.style.display = show ? 'block' : 'none';
-    }
-
-    function toggleNeverExpireWarning() {
-        const val = el('session-timeout')?.value;
-        const warning = el('never-expire-warning');
-        if (warning) warning.style.display = val === '0' ? 'block' : 'none';
-    }
-
-    async function saveConfig() {
-        const status = el('save-status');
-        const botToken = el('bot-token')?.value || '';
-        const userToken = el('user-token')?.value || '';
-
-        const config = {
-            action: 'set',
-            bot: { token: botToken },
-            user: { token: userToken, read_only: true },
-            servers: (el('servers-list')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
-            memory: {
-                auto_save_summaries: el('auto-summaries')?.checked ?? true,
-                auto_save_insights: el('auto-insights')?.checked ?? true,
-                export_format: "markdown"
-            },
-            persona: {
-                auto_sync_on_read: el('auto-sync')?.checked ?? false,
-                track_activity: true
-            },
-            defaults: { message_limit: 100, insight_limit: 200, member_sync_limit: 1000 },
-            polling: {
-                interval_minutes: parseInt(el('poll-interval')?.value) || 15,
-                auto_analyze_images: el('auto-images')?.checked ?? true
-            },
-            chat_bridge: {
-                auto_start: el('bridge-autostart')?.checked ?? false,
-                allowed_users: (el('allowed-users')?.value || '').split('\n').map(s => s.trim()).filter(Boolean),
-                allow_elevated: el('allow-elevated')?.checked ?? false,
-                auth_key: el('auth-key')?.value || '',
-                session_timeout: parseInt(el('session-timeout')?.value) || 3600
-            }
-        };
-
-        // Debug: log what we're sending
-        const debugInfo = {
-            bot_token_len: botToken.length,
-            user_token_len: userToken.length,
-            has_bot: botToken.length > 0,
-            has_user: userToken.length > 0
-        };
-        console.log('[Discord Config] Saving:', JSON.stringify(debugInfo));
-
-        try {
-            const resp = await fetchApi('/api/plugins/discord/discord_config_api', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
-            });
-            const result = await resp.json();
-            console.log('[Discord Config] Save result:', JSON.stringify(result));
-
-            if (result.ok) {
-                status.style.color = '#2e7d32';
-                const parts = [];
-                if (debugInfo.has_bot) parts.push('bot token');
-                if (debugInfo.has_user) parts.push('user token');
-                status.textContent = 'Saved! (' + (parts.join(' + ') || 'settings') + ')';
-            } else {
-                status.style.color = '#c62828';
-                status.textContent = 'Error: ' + (result.error || 'Unknown');
-            }
-            setTimeout(() => { status.textContent = ''; }, 5000);
-        } catch (e) {
-            status.style.color = '#c62828';
-            status.textContent = 'Network error: ' + e.message;
-            console.error('[Discord Config] Save error:', e);
-        }
-    }
-
-    // Bind save button
-    const saveBtn = el('save-btn');
-    if (saveBtn) saveBtn.addEventListener('click', saveConfig);
-
-    // Bind elevated mode toggle
-    const elevatedToggle = el('allow-elevated');
-    if (elevatedToggle) elevatedToggle.addEventListener('change', toggleElevatedSettings);
-
-    // Bind session timeout change (show/hide never-expire warning)
-    const timeoutSelect = el('session-timeout');
-    if (timeoutSelect) timeoutSelect.addEventListener('change', toggleNeverExpireWarning);
-
-    // Bind regenerate key button
-    const regenBtn = el('regen-key-btn');
-    if (regenBtn) regenBtn.addEventListener('click', async function() {
-        try {
-            const resp = await fetchApi('/api/plugins/discord/discord_config_api', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({action: 'generate_auth_key'})
-            });
-            const result = await resp.json();
-            if (result.auth_key) {
-                el('auth-key').value = result.auth_key;
-            }
-        } catch (e) {
-            console.error('[Discord Config] Key generation error:', e);
-        }
-    });
-
-    // Bind copy key button
-    const copyBtn = el('copy-key-btn');
-    if (copyBtn) copyBtn.addEventListener('click', function() {
-        const key = el('auth-key')?.value;
-        if (key) {
-            navigator.clipboard.writeText(key).then(() => {
-                copyBtn.textContent = 'Copied!';
-                setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
-            });
-        }
-    });
-
-    // Load config on init
-    loadConfig();
-})();
-</script>
+</body>
+</html>

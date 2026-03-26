@@ -24,3 +24,25 @@ patch_api_debug.py
 # Environment
 .env
 *.log
+
+# Runtime config (contains secrets)
+config.json
+
+# Plugin state
+.toggle-*
+
+# Runtime data
+data/*.json
+data/
+
+# Test artifacts
+tests/*.json
+
+# Sensitive files
+*.key
+*.pem
+*.cert
+
+# Backup files
+*.bak
+*~

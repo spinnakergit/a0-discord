@@ -2,6 +2,15 @@
 
 A full-featured Discord integration plugin for Agent Zero that enables reading, summarizing, analyzing, and interacting with Discord servers directly through the agent.
 
+## Verification Status
+
+| Stage | Result |
+|-------|--------|
+| Regression Tests | 52/52 PASS |
+| Human Verification | Completed (red-team exercise) |
+| Security Assessment | Red-team pentest completed 2026-03-09 |
+| Standards Conformance | v1.1.0 (Alpine.js config, docs suite, thumbnail) |
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -13,6 +22,8 @@ A full-featured Discord integration plugin for Agent Zero that enables reading, 
 - [Alert Monitoring Setup Guide](#alert-monitoring-setup-guide)
 - [Architecture](#architecture)
 - [Troubleshooting](#troubleshooting)
+
+> For credential setup details, see [SETUP.md](SETUP.md).
 
 ---
 
@@ -618,6 +629,7 @@ usr/plugins/discord/
 +-- default_config.yaml      # Default settings
 +-- config.json              # Active config (created via WebUI or API)
 +-- initialize.py            # Dependency installer
++-- hooks.py                 # Plugin lifecycle hooks (install/uninstall)
 +-- install.sh               # Automated installer
 +-- helpers/
 |   +-- discord_client.py    # REST API wrapper with rate limiting
@@ -637,7 +649,7 @@ usr/plugins/discord/
 |   +-- agent_init/          # Auto-start chat bridge on agent init
 +-- api/                     # WebUI API endpoints
 |   +-- discord_test.py      # POST /api/plugins/discord/discord_test
-|   +-- discord_config_api.py  # GET/POST /api/plugins/discord/discord_config_api
+|   +-- discord_config_api.py  # POST /api/plugins/discord/discord_config_api (auth key generation)
 +-- webui/                   # Dashboard + settings UI
 +-- skills/                  # 5 SKILL.md files (copied to usr/skills/)
 +-- data/
@@ -645,6 +657,12 @@ usr/plugins/discord/
 |   +-- poll_state.json           # Polling state
 |   +-- chat_bridge_state.json    # Chat bridge channel assignments
 +-- docs/                    # Documentation
+|   +-- README.md            # Full reference (this file)
+|   +-- QUICKSTART.md        # 5-minute setup guide
+|   +-- SETUP.md             # Credential setup guide
+|   +-- CHAT_BRIDGE.md       # Chat bridge reference
+|   +-- API_REFERENCE.md     # API endpoints and data formats
+|   +-- DEVELOPMENT.md       # Development guide
 ```
 
 ### How It Works

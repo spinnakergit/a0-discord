@@ -2,6 +2,15 @@
 
 A full-featured Discord integration plugin for Agent Zero that enables reading, summarizing, analyzing, and interacting with Discord servers directly through the agent.
 
+## Verification Status
+
+| Stage | Result |
+|-------|--------|
+| Regression Tests | 52/52 PASS |
+| Human Verification | Completed (red-team exercise) |
+| Security Assessment | Red-team pentest completed 2026-03-09 |
+| Standards Conformance | v1.1.0 |
+
 ## Features
 
 - **Read** channels, threads, and messages from any server the bot is in
@@ -125,6 +134,7 @@ Open Agent Zero's chat and try:
 |----------|-------------|
 | [docs/README.md](docs/README.md) | Full reference -- all tools, configuration, examples, architecture |
 | [docs/QUICKSTART.md](docs/QUICKSTART.md) | 5-minute setup guide |
+| [docs/SETUP.md](docs/SETUP.md) | Credential setup guide (bot creation, permissions, IDs) |
 | [docs/CHAT_BRIDGE.md](docs/CHAT_BRIDGE.md) | Chat bridge setup and configuration |
 | [docs/API_REFERENCE.md](docs/API_REFERENCE.md) | Internal API endpoints and data formats |
 | [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) | How to extend and contribute |
@@ -156,6 +166,7 @@ usr/plugins/discord/
 ├── default_config.yaml      # Default settings
 ├── config.json              # Active config (created on first save)
 ├── initialize.py            # Dependency installer
+├── hooks.py                 # Plugin lifecycle hooks (install/uninstall)
 ├── install.sh               # Automated installer
 ├── helpers/
 │   ├── discord_client.py    # REST API wrapper with rate limiting

@@ -1,21 +1,168 @@
-# Development Guide
+# Discord Integration Plugin — Development Guide
 
-How to extend, modify, and contribute to the Discord plugin.
+## Project Structure
+
+```
+a0-discord/
+├── plugin.yaml              # Plugin manifest
+├── default_config.yaml      # Default settings
+├── initialize.py            # Dependency installer (aiohttp, pyyaml, discord.py)
+├── hooks.py                 # Plugin lifecycle hooks (install/uninstall)
+├── install.sh               # Deployment script
+├── .gitignore
+├── helpers/
+│   ├── __init__.py
+│   ├── discord_client.py    # REST API wrapper with rate limiting
+│   ├── discord_bot.py       # Chat bridge bot (discord.py Gateway + AgentContext)
+│   ├── sanitize.py          # Prompt injection defense, input validation
+│   ├── persona_registry.py  # JSON-based persistent user tracking
+│   └── poll_state.py        # Polling state tracker (last seen IDs, alert history)
+├── tools/
+│   ├── discord_read.py      # Read channels/threads/messages
+│   ├── discord_send.py      # Send messages/reactions (bot only)
+│   ├── discord_summarize.py # Summarize → LLM → memory
+│   ├── discord_insights.py  # Insights → LLM → memory
+│   ├── discord_members.py   # Member queries + persona registry
+│   ├── discord_poll.py      # Channel monitoring with image analysis
+│   └── discord_chat.py      # Chat bridge management (start/stop/add/remove)
+├── prompts/
+│   ├── agent.system.tool.discord_read.md
+│   ├── agent.system.tool.discord_send.md
+│   ├── agent.system.tool.discord_summarize.md
+│   ├── agent.system.tool.discord_insights.md
+│   ├── agent.system.tool.discord_members.md
+│   ├── agent.system.tool.discord_poll.md
+│   └── agent.system.tool.discord_chat.md
+├── skills/
+│   ├── discord-research/SKILL.md
+│   ├── discord-communicate/SKILL.md
+│   ├── discord-persona-mapping/SKILL.md
+│   ├── discord-alerts/SKILL.md
+│   └── discord-chat/SKILL.md
+├── api/
+│   ├── discord_test.py          # Connection test endpoint
+│   ├── discord_config_api.py    # Custom actions (auth key generation)
+│   └── discord_bridge_api.py    # Chat bridge start/stop/status
+├── webui/
+│   ├── main.html            # Dashboard (status, bridge control)
+│   └── config.html          # Settings (Alpine.js x-model bindings)
+├── extensions/
+│   └── python/agent_init/_10_discord_chat.py  # Auto-start bridge
+├── tests/
+│   ├── regression_test.sh
+│   ├── HUMAN_TEST_PLAN.md
+│   ├── HUMAN_TEST_RESULTS.md
+│   └── SECURITY_ASSESSMENT_RESULTS.md
+└── docs/
+    ├── README.md
+    ├── QUICKSTART.md
+    ├── SETUP.md
+    ├── CHAT_BRIDGE.md
+    ├── API_REFERENCE.md
+    └── DEVELOPMENT.md
+```
+
+## Development Setup
+
+1. Start the dev container:
+   ```bash
+   docker start agent-zero-dev
+   ```
+
+2. Install the plugin:
+   ```bash
+   docker cp a0-discord/. agent-zero-dev:/a0/usr/plugins/discord/
+   docker exec agent-zero-dev bash /a0/usr/plugins/discord/install.sh
+   ```
+
+3. For iterative development (push changes without full reinstall):
+   ```bash
+   docker cp a0-discord/. agent-zero-dev:/a0/usr/plugins/discord/
+   docker exec agent-zero-dev supervisorctl restart run_ui
+   ```
+
+4. Run tests:
+   ```bash
+   bash tests/regression_test.sh agent-zero-dev 50083
+   ```
 
 ---
 
-## Plugin Framework Basics
+## WebUI Patterns
 
-This plugin follows Agent Zero's plugin framework conventions. Key rules:
+### config.html — Alpine.js x-model Standard
 
-- **`plugin.yaml`** in the root directory is required — it's how the framework discovers the plugin
-- **Tools** go in `tools/` — one file per tool, one `Tool` subclass per file
-- **Tool prompts** go in `prompts/agent.system.tool.<tool_name>.md` — this is what the LLM reads
-- **Extensions** go in `extensions/python/<extension_point>/`
-- **Helpers** go in `helpers/` — imported as `from plugins.discord.helpers.<module> import ...`
-- **API endpoints** go in `api/` — Flask route handlers
-- **WebUI** goes in `webui/` — `main.html` (dashboard) and `config.html` (settings)
-- **Config** is accessed via `plugins.get_plugin_config("discord", agent=self.agent)`
+The settings panel uses Agent Zero's standard Alpine.js `x-model` bindings. The `config` variable is inherited from the parent scope (the framework's plugin-settings modal). The framework handles Save, Load, CSRF, and defaults automatically — no custom JavaScript is needed.
+
+```html
+<html>
+<head><title>Discord Settings</title></head>
+<body>
+<div x-data x-init="...">
+  <template x-if="config">
+    <div>
+      <div class="section-title">Bot Account</div>
+      <div class="field">
+        <label class="field-label">
+          <span class="field-title">Bot Token</span>
+          <span class="field-description">From Discord Developer Portal → Bot → Token</span>
+        </label>
+        <div class="field-control">
+          <input type="password" x-model="config.bot.token" placeholder="Enter token" />
+        </div>
+      </div>
+      <!-- Toggles use the .toggler class -->
+      <div class="field">
+        <label class="field-label">
+          <span class="field-title">Auto-save Summaries</span>
+        </label>
+        <div class="field-control">
+          <label class="toggle">
+            <input type="checkbox" x-model="config.memory.auto_save_summaries" />
+            <span class="toggler"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
+</body>
+</html>
+```
+
+CSS classes provided by the framework: `field`, `field-label`, `field-title`, `field-description`, `field-control`, `section-title`, `section-description`, `toggle`, `toggler`.
+
+### main.html — Dashboard Pattern
+
+The dashboard uses these conventions:
+- **Lazy fetchApi**: `function fetchApi(url, opts) { return (globalThis.fetchApi || fetch)(url, opts); }` — must be called at request time, never captured at init
+- **data-dcm= attributes**: All DOM selectors use `data-dcm="name"` (never bare `id=`)
+- **window._dcMain namespace**: All public functions attached to `window._dcMain`
+- **Inline onclick**: Event handlers use `onclick="window._dcMain.fn()"` (never `addEventListener`)
+- **Init via setTimeout**: `setTimeout(function() { init(); }, 50);`
+
+```html
+<script>
+(function() {
+    function fetchApi(url, opts) { return (globalThis.fetchApi || fetch)(url, opts); }
+    function $(sel) { return document.querySelector('[data-dcm="' + sel + '"]'); }
+
+    async function testConnection() {
+        var badge = $('status-badge');
+        // ...
+        var resp = await fetchApi('/api/plugins/discord/discord_test', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: '{}'
+        });
+        // ...
+    }
+
+    window._dcMain = { testConnection: testConnection };
+    setTimeout(function() { testConnection(); }, 50);
+})();
+</script>
+```
 
 ---
 
@@ -62,7 +209,6 @@ class DiscordSearch(Tool):
                     break_loop=False,
                 )
 
-            # Format results
             lines = [f"Found {len(messages)} results for '{query}':"]
             for group in messages:
                 for msg in group:
@@ -103,7 +249,7 @@ The plugin framework auto-discovers tools by filename. No registration needed.
 
 ## Adding a New Extension
 
-Extensions hook into Agent Zero's lifecycle. Example: log every Discord tool call.
+Extensions hook into Agent Zero's lifecycle. They must subclass `Extension` and implement a sync `execute()` method.
 
 Create `extensions/python/tool_execute_after/_50_discord_log.py`:
 
@@ -112,9 +258,12 @@ from helpers.extension import Extension
 
 
 class DiscordToolLogger(Extension):
-    async def execute(self, tool=None, response=None, **kwargs):
+    def execute(self, tool=None, response=None, **kwargs):
         if tool and tool.name.startswith("discord_"):
-            print(f"[Discord] Tool {tool.name} completed: {response.message[:100]}")
+            self.agent.log.log(
+                type="info",
+                content=f"Discord tool {tool.name} completed",
+            )
 ```
 
 The `_50_` prefix controls execution order (lower = earlier). The directory name (`tool_execute_after`) must match a valid extension point.
@@ -126,17 +275,11 @@ The `_50_` prefix controls execution order (lower = earlier). The directory name
 To add a new Discord API call, edit `helpers/discord_client.py`:
 
 ```python
-# In the DiscordClient class:
-
 async def get_guild_roles(self, guild_id: str) -> list:
     return await self._request("GET", f"/guilds/{guild_id}/roles")
 ```
 
-The `_request` method handles:
-- Authentication (bot or user token)
-- Rate limiting
-- 429 retry
-- Error handling
+The `_request` method handles authentication, rate limiting, 429 retry, and error handling.
 
 For bot-only operations, add the guard:
 
@@ -148,128 +291,48 @@ async def ban_member(self, guild_id: str, user_id: str) -> None:
 
 ---
 
-## Testing Locally
+## Architecture Decisions
 
-Since the plugin depends on Agent Zero's framework (helpers.tool, plugins.memory, etc.), full testing requires a running Agent Zero instance.
+| Decision | Rationale |
+|----------|-----------|
+| Alpine.js `x-model` for config | Framework handles save/load/CSRF/defaults; no custom JS needed |
+| Lazy `fetchApi` | CSRF wrapper may not exist at script parse time; must resolve at call time |
+| `data-dcm=` attributes | Framework reloads WebUI components; bare IDs can collide |
+| Inline `onclick` handlers | `addEventListener` accumulates on component reload |
+| `window._dcMain` namespace | Prevents global pollution; survives component reload |
+| `Extension` subclass with sync `execute()` | Required by A0 framework; bare async functions are not discovered |
+| `hooks.py` with `logging` | `print()` doesn't route through A0's log aggregation |
 
-**Quick validation:**
+---
 
-```python
-# Test the Discord client standalone
-import asyncio
-from helpers.discord_client import DiscordClient
+## Testing
 
-async def test():
-    client = DiscordClient(token="your_bot_token", is_bot=True)
-    user = await client.get_current_user()
-    print(f"Connected as: {user['username']}")
+### Regression Tests
 
-    channels = await client.get_guild_channels("your_guild_id")
-    for ch in channels:
-        print(f"  #{ch['name']} ({ch['id']})")
+```bash
+# Run full regression suite against a container
+bash tests/regression_test.sh <container_name> <port>
 
-    await client.close()
-
-asyncio.run(test())
+# Example
+bash tests/regression_test.sh a0-testing 50085
 ```
 
-**Integration testing:**
+### Integration Testing
 
 1. Install the plugin into a running Agent Zero instance
 2. Open the WebUI and test the connection via the dashboard
 3. Ask the agent to list channels, read messages, etc.
 4. Check Agent Zero logs for errors
 
----
-
-## Known Limitations
-
-### WebUI Config Uses Custom API Instead of Framework Settings Store
-
-The `webui/config.html` settings panel uses a custom API endpoint (`discord_config_api`) with raw `fetch()` calls instead of the framework's standard settings store.
-
-**Why:** Discord tokens are sensitive credentials. Our custom API masks tokens in GET responses (showing only first 4 + last 4 characters) and preserves existing tokens when a masked value is submitted back. The framework's generic `get_config`/`save_config` API does not provide this masking behavior, which would expose full tokens in the browser.
-
-**Impact:** Per-project and per-agent config scoping through the WebUI settings modal will not work -- changes made in the config UI always write to the global plugin config at `usr/plugins/discord/config.json`. However, file-based scoping still works: you can manually create scoped config files at the paths defined in the [Settings Resolution](https://www.agent-zero.ai/p/docs/plugins/#settings-resolution) hierarchy (e.g., `usr/agents/<profile>/plugins/discord/config.json`).
-
-**Note:** As of the March 2026 framework update, settings values are exposed on `config` and wrapper/modal variables on `context` (replacing the old `$store.pluginSettings` pattern). Since this plugin uses a custom API rather than framework bindings, no code changes were needed.
-
----
-
-## Project Structure Reference
-
-```
-discord-plugin/
-+-- README.md                # Top-level overview with quick start
-+-- plugin.yaml              # Manifest -- do not rename
-+-- default_config.yaml      # Defaults -- values used when no config.json exists
-+-- initialize.py            # Run once to install deps (aiohttp, pyyaml, discord.py)
-+-- install.sh               # Automated installer (auto-detects /a0/ vs /git/agent-zero/)
-+-- helpers/
-|   +-- __init__.py
-|   +-- discord_client.py    # REST API wrapper with rate limiting
-|   +-- discord_bot.py       # Chat bridge bot (discord.py Gateway + AgentContext)
-|   +-- persona_registry.py  # JSON-based user tracking
-|   +-- poll_state.py        # Polling state tracker (last seen IDs, alert history)
-+-- tools/
-|   +-- discord_read.py      # Read channels/threads/messages
-|   +-- discord_send.py      # Send messages/reactions (bot only)
-|   +-- discord_summarize.py # Summarize -> LLM -> memory
-|   +-- discord_insights.py  # Insights -> LLM -> memory
-|   +-- discord_members.py   # Member queries + persona registry
-|   +-- discord_poll.py      # Channel monitoring with image analysis
-|   +-- discord_chat.py      # Chat bridge management (start/stop/add/remove)
-+-- prompts/
-|   +-- agent.system.tool.discord_read.md
-|   +-- agent.system.tool.discord_send.md
-|   +-- agent.system.tool.discord_summarize.md
-|   +-- agent.system.tool.discord_insights.md
-|   +-- agent.system.tool.discord_members.md
-|   +-- agent.system.tool.discord_poll.md
-|   +-- agent.system.tool.discord_chat.md
-+-- api/
-|   +-- discord_test.py          # POST /api/plugins/discord/discord_test
-|   +-- discord_config_api.py    # GET/POST /api/plugins/discord/discord_config_api
-+-- webui/
-|   +-- main.html            # Dashboard
-|   +-- config.html          # Settings
-+-- extensions/python/
-|   +-- agent_init/
-|       +-- _10_discord_chat.py  # Auto-start chat bridge on agent init
-+-- skills/
-|   +-- discord-research/SKILL.md
-|   +-- discord-communicate/SKILL.md
-|   +-- discord-persona-mapping/SKILL.md
-|   +-- discord-alerts/SKILL.md
-|   +-- discord-chat/SKILL.md
-+-- data/                    # Runtime data (auto-created)
-|   +-- persona_registry.json
-|   +-- poll_state.json
-|   +-- chat_bridge_state.json
-+-- docs/
-    +-- README.md            # Full documentation
-    +-- QUICKSTART.md        # 5-minute setup guide
-    +-- CHAT_BRIDGE.md       # Chat bridge setup and config
-    +-- API_REFERENCE.md     # API endpoints and data format docs
-    +-- DEVELOPMENT.md       # This file
-```
-
 ### Important: Plugin Installation Path
 
 Agent Zero uses a dual-path architecture:
-- `/git/agent-zero/` -- source code (persists across rebuilds)
-- `/a0/` -- runtime copy (where the server runs from)
+- `/git/agent-zero/` — source code (persists across rebuilds)
+- `/a0/` — runtime copy (where the server runs from)
 
 User plugins go in `usr/plugins/<name>/` but need a symlink at `plugins/<name>/` for Python imports:
 ```bash
 ln -sf /a0/usr/plugins/discord /a0/plugins/discord
 ```
 
-Without this symlink, `from plugins.discord.helpers...` imports will fail with `ModuleNotFoundError`. The `install.sh` script creates this automatically.
-
-When developing, always copy changes to `/a0/usr/plugins/discord/`, clear `__pycache__`, and restart:
-```bash
-docker cp your-file.py <container>:/a0/usr/plugins/discord/path/to/file.py
-docker exec <container> find /a0 -path '*/discord*/__pycache__' -type d -exec rm -rf {} +
-docker exec <container> supervisorctl restart run_ui
-```
+Without this symlink, `from plugins.discord.helpers...` imports will fail with `ModuleNotFoundError`. The `install.sh` script and `hooks.py` create this automatically.
