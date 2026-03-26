@@ -3,7 +3,7 @@ status: published
 repo: https://github.com/spinnakergit/a0-discord
 index_status: in index
 published_date: 2026-03-10
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Release Status
@@ -31,3 +31,29 @@ version: 1.0.0
 ## Notes
 - Discord was the first chat-bridge plugin built and served as the reference implementation for Signal, Telegram, and Slack.
 - Verification was conducted before the formal HUMAN_VERIFICATION_FRAMEWORK was established; the red-team exercise served as both human verification and security assessment.
+
+## Changelog
+
+### v1.1.0 — 2026-03-25
+Standards conformance release.
+- **config.html**: Migrated to A0's standard Alpine.js `x-model` settings framework (removes custom fetchApi/save logic)
+- **discord_config_api.py**: Simplified to only handle `generate_auth_key` (config CRUD now handled by framework)
+- **main.html**: Rewritten with `data-dcm=` attributes (replaces bare IDs), lazy fetchApi, `window._dcMain` namespace, inline onclick
+- **hooks.py**: Rewritten with `logging.getLogger()` (replaces `print()` statements)
+- **docs/SETUP.md**: New — full credential setup guide (bot creation, permissions, IDs, 3 install options, troubleshooting)
+- **docs/QUICKSTART.md**: Added Plugin Hub install option, credential mapping table, Known Behaviors, expanded Troubleshooting
+- **docs/DEVELOPMENT.md**: Rewritten — Alpine.js config pattern, main.html dashboard pattern, architecture decisions, testing section
+- **docs/README.md**: Added SETUP link, verification badge, updated architecture tree and API descriptions
+- **thumbnail.png**: Added (256x256 RGBA, transparent background)
+- **.gitignore**: Added config.json, `.toggle-*`, `data/`, `tests/*.json`, sensitive file patterns
+- **README.md**: Added verification badge section, SETUP link in docs table
+- All `print()` in hooks.py replaced with `logging.getLogger()`
+
+### v1.0.0 — 2026-03-10
+Initial release.
+- 7 tools: read, send, summarize, insights, members, poll, chat
+- 3 API endpoints: test, config, bridge
+- Chat bridge with dual-mode security (restricted/elevated)
+- 5 skills: research, communicate, persona-mapping, alerts, chat
+- Auto-start extension for chat bridge
+- Full verification: 52/52 regression, red-team pentest
