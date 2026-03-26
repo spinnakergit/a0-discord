@@ -539,7 +539,6 @@ class ChatBridgeBot(discord.Client):
             # with "[Discord Chat Bridge - …]" because that makes the infection
             # check think an external entity is directing the agent.
             prefixed_text = safe_text
-            )
 
             # Handle image attachments for the agent
             attachment_paths = []
