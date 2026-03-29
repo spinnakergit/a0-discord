@@ -20,9 +20,16 @@ import time
 from pathlib import Path
 from typing import Optional
 
-import discord
-
 logger = logging.getLogger("discord_chat_bridge")
+
+try:
+    import discord
+except ModuleNotFoundError:
+    logger.warning("discord.py not found, installing...")
+    import subprocess, sys
+    python = "/opt/venv-a0/bin/python3" if os.path.isfile("/opt/venv-a0/bin/python3") else sys.executable
+    subprocess.check_call([python, "-m", "pip", "install", "discord.py>=2.3,<3"], capture_output=True)
+    import discord
 
 # Singleton bot instance and its dedicated event loop thread
 _bot_instance: Optional["ChatBridgeBot"] = None
