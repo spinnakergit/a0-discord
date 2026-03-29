@@ -58,6 +58,20 @@ def main():
         print(f"[Discord Plugin] Failed to install: {', '.join(failed)}")
         return 1
 
+    # Ensure symlink exists for plugin namespace imports
+    plugin_dir = Path(__file__).resolve().parent
+    for root in [Path("/a0"), Path("/git/agent-zero")]:
+        plugins_dir = root / "plugins"
+        if plugins_dir.is_dir():
+            symlink = plugins_dir / "discord"
+            if not symlink.exists():
+                try:
+                    symlink.symlink_to(plugin_dir)
+                    print(f"[Discord Plugin] Created symlink: {symlink} -> {plugin_dir}")
+                except OSError as e:
+                    print(f"[Discord Plugin] WARNING: Could not create symlink: {e}")
+            break
+
     print("[Discord Plugin] All dependencies ready.")
     return 0
 
