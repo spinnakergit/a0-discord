@@ -33,7 +33,7 @@ class DiscordConfigApi(ApiHandler):
         try:
             from pathlib import Path
             import json
-            from plugins.discord.helpers.sanitize import generate_auth_key, secure_write_json
+            from usr.plugins.discord.helpers.sanitize import generate_auth_key, secure_write_json
 
             key = generate_auth_key()
 

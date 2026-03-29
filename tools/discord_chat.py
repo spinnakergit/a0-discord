@@ -1,6 +1,6 @@
 from helpers.tool import Tool, Response
-from plugins.discord.helpers.discord_client import get_discord_config
-from plugins.discord.helpers.discord_bot import (
+from usr.plugins.discord.helpers.discord_client import get_discord_config
+from usr.plugins.discord.helpers.discord_bot import (
     start_chat_bridge,
     stop_chat_bridge,
     get_bot_status,
@@ -8,7 +8,7 @@ from plugins.discord.helpers.discord_bot import (
     remove_chat_channel,
     get_chat_channels,
 )
-from plugins.discord.helpers.sanitize import require_auth, validate_snowflake
+from usr.plugins.discord.helpers.sanitize import require_auth, validate_snowflake
 
 
 class DiscordChat(Tool):

@@ -33,7 +33,7 @@ def load_registry() -> dict:
 
 def save_registry(registry: dict):
     registry["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    from plugins.discord.helpers.sanitize import secure_write_json
+    from usr.plugins.discord.helpers.sanitize import secure_write_json
     secure_write_json(_get_registry_path(), registry)
 
 

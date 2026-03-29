@@ -260,7 +260,7 @@ def format_messages(messages: list, include_ids: bool = False) -> str:
     All external content (usernames, message text, embeds, filenames) is
     sanitized to neutralise prompt injection attempts.
     """
-    from plugins.discord.helpers.sanitize import (
+    from usr.plugins.discord.helpers.sanitize import (
         sanitize_content, sanitize_username, sanitize_embed, sanitize_filename,
     )
 

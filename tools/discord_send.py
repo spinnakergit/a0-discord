@@ -1,8 +1,8 @@
 from helpers.tool import Tool, Response
-from plugins.discord.helpers.discord_client import (
+from usr.plugins.discord.helpers.discord_client import (
     DiscordClient, DiscordAPIError, get_discord_config,
 )
-from plugins.discord.helpers.sanitize import require_auth, validate_snowflake
+from usr.plugins.discord.helpers.sanitize import require_auth, validate_snowflake
 
 
 class DiscordSend(Tool):

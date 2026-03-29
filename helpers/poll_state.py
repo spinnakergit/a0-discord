@@ -31,7 +31,7 @@ def load_state() -> dict:
 
 
 def save_state(state: dict):
-    from plugins.discord.helpers.sanitize import secure_write_json
+    from usr.plugins.discord.helpers.sanitize import secure_write_json
     secure_write_json(_get_state_path(), state)
 
 

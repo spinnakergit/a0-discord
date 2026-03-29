@@ -3,15 +3,15 @@ import time
 import aiohttp
 from pathlib import Path
 from helpers.tool import Tool, Response
-from plugins.discord.helpers.discord_client import (
+from usr.plugins.discord.helpers.discord_client import (
     DiscordClient, DiscordAPIError, format_messages, get_discord_config,
     get_modes_to_try,
 )
-from plugins.discord.helpers.poll_state import (
+from usr.plugins.discord.helpers.poll_state import (
     get_last_message_id, set_last_message_id, record_alert,
     add_watch_channel, remove_watch_channel, get_watch_channels,
 )
-from plugins.discord.helpers.sanitize import (
+from usr.plugins.discord.helpers.sanitize import (
     sanitize_content, sanitize_username, sanitize_filename, require_auth,
     validate_snowflake, validate_image_url,
 )

@@ -1,9 +1,9 @@
 from helpers.tool import Tool, Response
-from plugins.discord.helpers.discord_client import (
+from usr.plugins.discord.helpers.discord_client import (
     DiscordClient, DiscordAPIError, format_messages, get_discord_config,
     get_modes_to_try,
 )
-from plugins.discord.helpers.sanitize import require_auth, sanitize_channel_name
+from usr.plugins.discord.helpers.sanitize import require_auth, sanitize_channel_name
 
 
 class DiscordRead(Tool):

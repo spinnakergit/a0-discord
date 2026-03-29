@@ -63,7 +63,7 @@ def load_chat_state() -> dict:
 
 
 def save_chat_state(state: dict):
-    from plugins.discord.helpers.sanitize import secure_write_json
+    from usr.plugins.discord.helpers.sanitize import secure_write_json
     secure_write_json(_get_state_path(), state)
 
 
@@ -165,7 +165,7 @@ class ChatBridgeBot(discord.Client):
     def _get_config(self) -> dict:
         """Load the Discord plugin configuration."""
         try:
-            from plugins.discord.helpers.discord_client import get_discord_config
+            from usr.plugins.discord.helpers.discord_client import get_discord_config
             return get_discord_config()
         except Exception:
             return {}
@@ -203,13 +203,13 @@ class ChatBridgeBot(discord.Client):
 
         if not auth_key and bridge_config.get("allow_elevated", False):
             # Auto-generate a key and persist it
-            from plugins.discord.helpers.sanitize import generate_auth_key
+            from usr.plugins.discord.helpers.sanitize import generate_auth_key
             auth_key = generate_auth_key()
             bridge_config["auth_key"] = auth_key
             config["chat_bridge"] = bridge_config
             try:
-                from plugins.discord.helpers.discord_client import get_discord_config
-                from plugins.discord.helpers.sanitize import secure_write_json
+                from usr.plugins.discord.helpers.discord_client import get_discord_config
+                from usr.plugins.discord.helpers.sanitize import secure_write_json
                 # Find and update the config file
                 config_candidates = [
                     Path("/a0/usr/plugins/discord/config.json"),
@@ -465,7 +465,7 @@ class ChatBridgeBot(discord.Client):
             agent = context.agent0
 
             # Sanitize external content
-            from plugins.discord.helpers.sanitize import sanitize_content, sanitize_username
+            from usr.plugins.discord.helpers.sanitize import sanitize_content, sanitize_username
             author_name = sanitize_username(
                 message.author.display_name or message.author.name
             )
@@ -536,7 +536,7 @@ class ChatBridgeBot(discord.Client):
                 logger.info(f"Created new elevated context {context.id} for channel {channel_id}")
 
             # Sanitize input (injection defense still applies)
-            from plugins.discord.helpers.sanitize import sanitize_content, sanitize_username
+            from usr.plugins.discord.helpers.sanitize import sanitize_content, sanitize_username
             author_name = sanitize_username(
                 message.author.display_name or message.author.name
             )
@@ -592,7 +592,7 @@ class ChatBridgeBot(discord.Client):
     async def _get_agent_response_http(self, channel_id: str, text: str) -> str:
         """Fallback: route through Agent Zero's HTTP API."""
         import aiohttp
-        from plugins.discord.helpers.discord_client import get_discord_config
+        from usr.plugins.discord.helpers.discord_client import get_discord_config
 
         config = get_discord_config()
         api_port = config.get("chat_bridge", {}).get("api_port", 80)
